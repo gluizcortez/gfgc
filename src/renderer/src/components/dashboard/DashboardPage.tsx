@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
-import { LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, Calendar as CalendarIcon, FileDown } from 'lucide-react'
+import { clsx } from 'clsx'
 import { MonthNavigator } from '@/components/layout/MonthNavigator'
+import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { SummaryCards } from './SummaryCards'
 import { AlertCards } from './AlertCards'
 import { ExpensePieChart } from './ExpensePieChart'
@@ -11,16 +13,25 @@ import { PortfolioPieChart } from './PortfolioPieChart'
 import { InvestmentBreakdownChart } from './InvestmentBreakdownChart'
 import { ExpenseTrendChart } from './ExpenseTrendChart'
 import { CategoryTrendChart } from './CategoryTrendChart'
+import { IncomePieChart } from './IncomePieChart'
+import { YearView } from './YearView'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import { useGoalsStore } from '@/stores/useGoalsStore'
 import { useFGTSStore } from '@/stores/useFGTSStore'
-import { getCurrentMonthKey } from '@/lib/formatters'
+import { useIncomeStore } from '@/stores/useIncomeStore'
+import { useUIStore } from '@/stores/useUIStore'
+import { getCurrentMonthKey, formatCurrency, formatDate, formatMonthYear } from '@/lib/formatters'
+import { getYearMonths, getCategoryTotals } from '@/lib/calculations'
+import { MONTH_NAMES_PT } from '@/lib/constants'
 
 export function DashboardPage(): React.JSX.Element {
   const [month, setMonth] = useState(getCurrentMonthKey())
+  const [viewMode, setViewMode] = useState<'month' | 'year'>('month')
+  const currentYear = new Date().getFullYear()
+  const [year, setYear] = useState(currentYear)
 
   const workspaces = useSettingsStore((s) => s.workspaces)
   const categories = useSettingsStore((s) => s.settings.categories)
@@ -29,6 +40,8 @@ export function DashboardPage(): React.JSX.Element {
   const transactions = useInvestmentsStore((s) => s.transactions)
   const goals = useGoalsStore((s) => s.goals)
   const fgtsRecords = useFGTSStore((s) => s.records)
+  const incomeEntries = useIncomeStore((s) => s.entries)
+  const addNotification = useUIStore((s) => s.addNotification)
 
   const billWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'bills'), [workspaces])
   const investWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'investments'), [workspaces])
@@ -62,6 +75,11 @@ export function DashboardPage(): React.JSX.Element {
     [wsTransactions, month]
   )
 
+  const monthIncome = useMemo(
+    () => incomeEntries.filter((e) => e.monthKey === month),
+    [incomeEntries, month]
+  )
+
   const activeGoals = useMemo(() => goals.filter((g) => g.isActive), [goals])
   const filteredGoals = useMemo(() => {
     if (selectedGoalIds.length === 0) return activeGoals
@@ -69,6 +87,35 @@ export function DashboardPage(): React.JSX.Element {
   }, [activeGoals, selectedGoalIds])
 
   const hasAnyData = workspaces.length > 0
+
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
+
+  const handleExportYearCSV = (): void => {
+    const months = getYearMonths(year)
+    const yearBills = billRecords.filter((r) => months.includes(r.monthKey)).flatMap((r) => r.bills)
+    const header = 'Mês,Total,Pago,Quantidade'
+    const monthlyData = months.map((mk, i) => {
+      const bills = billRecords.filter((r) => r.monthKey === mk).flatMap((r) => r.bills)
+      const total = bills.reduce((sum, b) => sum + b.value, 0)
+      const paid = bills.filter((b) => b.status === 'paid').reduce((sum, b) => sum + b.value, 0)
+      return `${MONTH_NAMES_PT[i].substring(0, 3)} ${year},${(total / 100).toFixed(2)},${(paid / 100).toFixed(2)},${bills.length}`
+    })
+    const catHeader = '\n\nCategoria,Total'
+    const categoryTotals = getCategoryTotals(yearBills)
+    const catRows = Array.from(categoryTotals.entries()).map(([catId, total]) => {
+      const cat = categories.find((c) => c.id === catId)
+      return `${cat?.name || catId},${(total / 100).toFixed(2)}`
+    })
+    const csv = [header, ...monthlyData, catHeader, ...catRows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gfgc-resumo-anual-${year}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    addNotification('Relatório anual exportado', 'success')
+  }
 
   if (!hasAnyData) {
     return (
@@ -102,121 +149,175 @@ export function DashboardPage(): React.JSX.Element {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Painel</h1>
-        <MonthNavigator monthKey={month} onChange={setMonth} />
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
-        {billWorkspaces.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Contas</p>
-            <div className="flex gap-1.5">
-              {billWorkspaces.map((ws) => {
-                const isActive = activeBillWs.includes(ws.id)
-                return (
-                  <button
-                    key={ws.id}
-                    onClick={() => toggleFilter(ws.id, selectedBillWs, setSelectedBillWs, billWorkspaces.map((w) => w.id))}
-                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'border-primary-200 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
-                    {ws.name}
-                  </button>
-                )
-              })}
-            </div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-gray-900">Painel</h1>
+          <div className="flex rounded-lg border border-gray-200">
+            <button
+              onClick={() => setViewMode('month')}
+              className={clsx(
+                'rounded-l-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                viewMode === 'month' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+              )}
+            >
+              Mês
+            </button>
+            <button
+              onClick={() => setViewMode('year')}
+              className={clsx(
+                'rounded-r-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                viewMode === 'year' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+              )}
+            >
+              Ano
+            </button>
           </div>
-        )}
-        {investWorkspaces.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Investimentos</p>
-            <div className="flex gap-1.5">
-              {investWorkspaces.map((ws) => {
-                const isActive = activeInvestWs.includes(ws.id)
-                return (
-                  <button
-                    key={ws.id}
-                    onClick={() => toggleFilter(ws.id, selectedInvestWs, setSelectedInvestWs, investWorkspaces.map((w) => w.id))}
-                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'border-primary-200 bg-primary-50 text-primary-700'
-                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
-                    {ws.name}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-        {activeGoals.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Metas</p>
-            <div className="flex flex-wrap gap-1.5">
-              {activeGoals.map((goal) => {
-                const isActive = selectedGoalIds.length === 0 || selectedGoalIds.includes(goal.id)
-                return (
-                  <button
-                    key={goal.id}
-                    onClick={() => toggleFilter(goal.id, selectedGoalIds, setSelectedGoalIds, activeGoals.map((g) => g.id))}
-                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'border-purple-200 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                    }`}
-                  >
-                    {goal.name}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+        </div>
+        {viewMode === 'month' ? (
+          <MonthNavigator monthKey={month} onChange={setMonth} />
+        ) : (
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         )}
       </div>
 
-      <AlertCards bills={monthBills} categories={categories} currentMonth={month} />
-
-      <SummaryCards
-        bills={monthBills}
-        investments={wsInvestments}
-        monthTransactions={monthTransactions}
-        goals={filteredGoals}
-      />
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ExpensePieChart bills={monthBills} categories={categories} />
-        <PlannedVsActualBarChart goals={filteredGoals} transactions={transactions} />
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <PortfolioPieChart investments={wsInvestments} />
-        <InvestmentBreakdownChart
+      {viewMode === 'year' ? (
+        <YearView
+          year={year}
+          billRecords={billRecords}
           investments={wsInvestments}
           transactions={wsTransactions}
-          currentMonth={month}
+          goals={filteredGoals}
+          fgtsRecords={fgtsRecords}
+          incomeEntries={incomeEntries}
+          categories={categories}
+          onExportCSV={handleExportYearCSV}
         />
-      </div>
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="mb-6 flex flex-wrap gap-4">
+            {billWorkspaces.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Contas</p>
+                <div className="flex gap-1.5">
+                  {billWorkspaces.map((ws) => {
+                    const isActive = activeBillWs.includes(ws.id)
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => toggleFilter(ws.id, selectedBillWs, setSelectedBillWs, billWorkspaces.map((w) => w.id))}
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'border-primary-200 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                        {ws.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {investWorkspaces.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Investimentos</p>
+                <div className="flex gap-1.5">
+                  {investWorkspaces.map((ws) => {
+                    const isActive = activeInvestWs.includes(ws.id)
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => toggleFilter(ws.id, selectedInvestWs, setSelectedInvestWs, investWorkspaces.map((w) => w.id))}
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'border-primary-200 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                        {ws.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {activeGoals.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Metas</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeGoals.map((goal) => {
+                    const isActive = selectedGoalIds.length === 0 || selectedGoalIds.includes(goal.id)
+                    return (
+                      <button
+                        key={goal.id}
+                        onClick={() => toggleFilter(goal.id, selectedGoalIds, setSelectedGoalIds, activeGoals.map((g) => g.id))}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'border-purple-200 bg-purple-50 text-purple-700'
+                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
+                      >
+                        {goal.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ExpenseTrendChart billRecords={billRecords} currentMonth={month} />
-        <CategoryTrendChart billRecords={billRecords} categories={categories} currentMonth={month} />
-      </div>
+          <AlertCards bills={monthBills} categories={categories} currentMonth={month} />
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <InvestmentLineChart
-          transactions={wsTransactions}
-          investments={wsInvestments}
-          currentMonth={month}
-        />
-        <FGTSDashboardChart records={fgtsRecords} currentMonth={month} />
-      </div>
+          <SummaryCards
+            bills={monthBills}
+            investments={wsInvestments}
+            monthTransactions={monthTransactions}
+            goals={filteredGoals}
+          />
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ExpensePieChart bills={monthBills} categories={categories} />
+            <IncomePieChart entries={monthIncome} />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <PlannedVsActualBarChart goals={filteredGoals} transactions={transactions} />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <PortfolioPieChart investments={wsInvestments} />
+            <InvestmentBreakdownChart
+              investments={wsInvestments}
+              transactions={wsTransactions}
+              currentMonth={month}
+            />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ExpenseTrendChart billRecords={billRecords} currentMonth={month} />
+            <CategoryTrendChart billRecords={billRecords} categories={categories} currentMonth={month} />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <InvestmentLineChart
+              transactions={wsTransactions}
+              investments={wsInvestments}
+              currentMonth={month}
+            />
+            <FGTSDashboardChart records={fgtsRecords} currentMonth={month} />
+          </div>
+        </>
+      )}
     </div>
   )
 }

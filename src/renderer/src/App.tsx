@@ -13,7 +13,6 @@ import { GoalsPage } from '@/components/goals/GoalsPage'
 import { DashboardPage } from '@/components/dashboard/DashboardPage'
 import { FGTSPage } from '@/components/fgts/FGTSPage'
 import { SettingsPage } from '@/components/settings/SettingsPage'
-import { AnnualSummaryPage } from '@/components/annual/AnnualSummaryPage'
 import { NetWorthPage } from '@/components/networth/NetWorthPage'
 import { HelpPage } from '@/components/help/HelpPage'
 import { IncomePage } from '@/components/income/IncomePage'
@@ -71,7 +70,6 @@ function App(): React.JSX.Element {
             {activeSection === 'fgts' && <FGTSPage />}
             {activeSection === 'goals' && <GoalsPage />}
             {activeSection === 'dashboard' && <DashboardPage />}
-            {activeSection === 'annual' && <AnnualSummaryPage />}
             {activeSection === 'networth' && <NetWorthPage />}
             {activeSection === 'income' && <IncomePage />}
             {activeSection === 'settings' && <SettingsPage />}

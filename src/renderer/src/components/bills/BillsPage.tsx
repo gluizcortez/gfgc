@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Plus, Receipt, RefreshCw, Copy, CalendarDays, List, FileDown } from 'lucide-react'
+import { Plus, Receipt, Copy, CalendarDays, List, FileDown } from 'lucide-react'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { getNextMonthKey } from '@/lib/formatters'
 import { TabBar } from '@/components/layout/TabBar'
@@ -147,13 +147,6 @@ export function BillsPage(): React.JSX.Element {
     }
   }
 
-  const handleGenerate = (): void => {
-    if (effectiveId) {
-      generateMonthFromTemplates(effectiveId, month)
-      addNotification('Contas geradas a partir dos templates', 'success')
-    }
-  }
-
   const handleExportMonth = (): void => {
     if (bills.length === 0) return
     const header = 'Nome,Valor,Vencimento,Status'
@@ -241,15 +234,6 @@ export function BillsPage(): React.JSX.Element {
               >
                 <Copy size={16} />
                 Duplicar Mês
-              </button>
-            </SimpleTooltip>
-            <SimpleTooltip label="Criar contas automaticamente a partir dos templates recorrentes">
-              <button
-                onClick={handleGenerate}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-              >
-                <RefreshCw size={16} />
-                Gerar do Template
               </button>
             </SimpleTooltip>
             <SimpleTooltip label="Adicionar uma nova conta neste mês">

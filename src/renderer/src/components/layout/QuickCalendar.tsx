@@ -67,7 +67,7 @@ export function QuickCalendar(): React.JSX.Element {
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-0 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-0 shadow-xl">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <Dialog.Title className="text-base font-semibold text-gray-900">
@@ -131,7 +131,7 @@ export function QuickCalendar(): React.JSX.Element {
               <div className="grid grid-cols-7">
                 {cells.map((day, index) => {
                   if (day === null) {
-                    return <div key={`empty-${index}`} className="min-h-[52px] border-b border-r border-gray-50" />
+                    return <div key={`empty-${index}`} className="min-h-[64px] border-b border-r border-gray-50" />
                   }
 
                   const dayBills = calendarData.billsByDay.get(day) || []
@@ -144,7 +144,7 @@ export function QuickCalendar(): React.JSX.Element {
                     <div
                       key={day}
                       className={clsx(
-                        'min-h-[52px] border-b border-r border-gray-50 p-0.5',
+                        'min-h-[64px] border-b border-r border-gray-50 p-0.5',
                         isToday && 'bg-primary-50/50'
                       )}
                     >
@@ -169,13 +169,13 @@ export function QuickCalendar(): React.JSX.Element {
                         )}
                       </div>
                       <div className="mt-0.5 space-y-px">
-                        {dayBills.slice(0, 2).map((bill) => {
+                        {dayBills.slice(0, 3).map((bill) => {
                           const effective = getEffectiveStatus(bill)
                           return (
                             <div
                               key={bill.id}
                               className={clsx(
-                                'truncate rounded px-0.5 text-[8px] leading-tight',
+                                'truncate rounded px-0.5 text-[9px] leading-tight',
                                 effective === 'paid'
                                   ? 'bg-green-100 text-green-700'
                                   : effective === 'overdue'
@@ -188,8 +188,8 @@ export function QuickCalendar(): React.JSX.Element {
                             </div>
                           )
                         })}
-                        {dayBills.length > 2 && (
-                          <p className="px-0.5 text-[8px] text-gray-400">+{dayBills.length - 2}</p>
+                        {dayBills.length > 3 && (
+                          <p className="px-0.5 text-[9px] text-gray-400">+{dayBills.length - 3}</p>
                         )}
                       </div>
                     </div>

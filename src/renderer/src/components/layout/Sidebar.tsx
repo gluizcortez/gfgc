@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Landmark,
-  Calendar,
   Wallet,
   DollarSign,
   HelpCircle
@@ -24,7 +23,6 @@ const NAV_ITEMS: { section: AppSection; label: string; icon: typeof Receipt; des
   { section: 'investments', label: 'Investimentos', icon: TrendingUp, description: 'Acompanhe seus investimentos e rendimentos' },
   { section: 'fgts', label: 'FGTS', icon: Landmark, description: 'Registre e acompanhe seu saldo de FGTS' },
   { section: 'goals', label: 'Metas', icon: Target, description: 'Defina e monitore suas metas financeiras' },
-  { section: 'annual', label: 'Resumo Anual', icon: Calendar, description: 'Análise consolidada do ano' },
   { section: 'networth', label: 'Patrimônio', icon: Wallet, description: 'Acompanhe a evolução do seu patrimônio' },
   { section: 'settings', label: 'Configurações', icon: Settings, description: 'Personalize o aplicativo' },
   { section: 'help', label: 'Como Usar', icon: HelpCircle, description: 'Guia completo de todas as funcionalidades' }

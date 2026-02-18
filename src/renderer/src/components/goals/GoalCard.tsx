@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Pause, Play, Link } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Pause, Play, Link, BarChart3 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { GoalProgressBar } from './GoalProgressBar'
 import { GoalContributionHistory } from './GoalContributionHistory'
-import { calculateGoalProgress, calculateOverallGoalProgress, type GoalProgress } from '@/lib/calculations'
+import { calculateOverallGoalProgress, type GoalProgress } from '@/lib/calculations'
 import { formatCurrency, getCurrentMonthKey } from '@/lib/formatters'
 import { PERIODICITY_LABELS } from '@/lib/constants'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
@@ -16,6 +16,7 @@ interface GoalCardProps {
   onDelete: () => void
   onToggleActive: () => void
   onAddContribution: () => void
+  onShowChart: () => void
 }
 
 export function GoalCard({
@@ -23,7 +24,8 @@ export function GoalCard({
   onEdit,
   onDelete,
   onToggleActive,
-  onAddContribution
+  onAddContribution,
+  onShowChart
 }: GoalCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const transactions = useInvestmentsStore((s) => s.transactions)
@@ -57,11 +59,11 @@ export function GoalCard({
     return { target, actual, percentage, status, difference }
   }, [goal, transactions])
 
-  const lastProgress = goal.goalType === 'investment_linked' && investmentProgress
+  const investmentCurrentProgress = goal.goalType === 'investment_linked' && investmentProgress
     ? investmentProgress
-    : calculateGoalProgress(goal)
+    : null
 
-  const overallProgress = goal.goalType === 'manual' && goal.contributions.length > 1
+  const overallProgress = goal.goalType === 'manual'
     ? calculateOverallGoalProgress(goal)
     : null
 
@@ -88,6 +90,16 @@ export function GoalCard({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {goal.goalType === 'manual' && goal.contributions.length > 0 && (
+            <SimpleTooltip label="Ver gráfico de aportes">
+              <button
+                onClick={onShowChart}
+                className="rounded-md p-1.5 text-gray-400 hover:bg-primary-50 hover:text-primary-600"
+              >
+                <BarChart3 size={14} />
+              </button>
+            </SimpleTooltip>
+          )}
           <SimpleTooltip label={goal.isActive ? 'Pausar meta' : 'Reativar meta'}>
             <button
               onClick={onToggleActive}
@@ -148,12 +160,12 @@ export function GoalCard({
         })()}
       </div>
 
-      <div className="mb-2">
-        <p className="mb-1 text-xs font-medium text-gray-500">
-          {goal.goalType === 'investment_linked' ? 'Período Atual (automático)' : 'Último Período'}
-        </p>
-        <GoalProgressBar progress={lastProgress} />
-      </div>
+      {investmentCurrentProgress && (
+        <div className="mb-2">
+          <p className="mb-1 text-xs font-medium text-gray-500">Período Atual (automático)</p>
+          <GoalProgressBar progress={investmentCurrentProgress} />
+        </div>
+      )}
 
       {overallProgress && (
         <div className="mb-3">

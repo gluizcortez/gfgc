@@ -55,7 +55,12 @@ export function calculateGoalProgress(goal: Goal): GoalProgress {
 }
 
 export function calculateOverallGoalProgress(goal: Goal): GoalProgress {
-  const totalTarget = goal.contributions.reduce((sum, c) => sum + c.targetAmount, 0)
+  // Group contributions by periodKey to count unique periods
+  const periodMap = new Map<string, number>()
+  for (const c of goal.contributions) {
+    periodMap.set(c.periodKey, (periodMap.get(c.periodKey) || 0) + c.actualAmount)
+  }
+  const totalTarget = periodMap.size * goal.targetAmount
   const totalActual = goal.contributions.reduce((sum, c) => sum + c.actualAmount, 0)
   const percentage = totalTarget > 0 ? (totalActual / totalTarget) * 100 : 0
   const difference = totalActual - totalTarget

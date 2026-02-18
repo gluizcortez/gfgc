@@ -14,7 +14,7 @@ import {
 import { Modal } from '@/components/shared/Modal'
 import { formatCurrency, formatMonthYear, formatDate } from '@/lib/formatters'
 import { INVESTMENT_TYPE_LABELS } from '@/types/models'
-import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, TrendingUp } from 'lucide-react'
 import type { Investment, InvestmentTransaction } from '@/types/models'
 
 interface InvestmentDetailModalProps {
@@ -28,6 +28,7 @@ interface MonthData {
   month: string
   aportes: number
   retiradas: number
+  rendimentos: number
   saldoAcumulado: number
 }
 
@@ -47,11 +48,13 @@ export function InvestmentDetailModal({
   const monthlyData = useMemo((): MonthData[] => {
     if (invTransactions.length === 0) return []
 
-    const months = new Map<string, { contributions: number; withdrawals: number }>()
+    const months = new Map<string, { contributions: number; withdrawals: number; yields: number }>()
     for (const tx of invTransactions) {
-      const existing = months.get(tx.monthKey) || { contributions: 0, withdrawals: 0 }
+      const existing = months.get(tx.monthKey) || { contributions: 0, withdrawals: 0, yields: 0 }
       if (tx.type === 'contribution') {
         existing.contributions += tx.amount
+      } else if (tx.type === 'yield') {
+        existing.yields += tx.amount
       } else {
         existing.withdrawals += tx.amount
       }
@@ -62,11 +65,12 @@ export function InvestmentDetailModal({
 
     let runningBalance = 0
     return sorted.map(([monthKey, data]) => {
-      runningBalance += data.contributions - data.withdrawals
+      runningBalance += data.contributions + data.yields - data.withdrawals
       return {
         month: formatMonthYear(monthKey),
         aportes: data.contributions / 100,
         retiradas: data.withdrawals / 100,
+        rendimentos: data.yields / 100,
         saldoAcumulado: runningBalance / 100
       }
     })
@@ -81,6 +85,9 @@ export function InvestmentDetailModal({
     .reduce((sum, t) => sum + t.amount, 0)
   const totalWithdrawals = invTransactions
     .filter((t) => t.type === 'withdrawal')
+    .reduce((sum, t) => sum + t.amount, 0)
+  const totalYields = invTransactions
+    .filter((t) => t.type === 'yield')
     .reduce((sum, t) => sum + t.amount, 0)
 
   if (!investment) return <></>
@@ -98,7 +105,7 @@ export function InvestmentDetailModal({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="rounded-lg bg-green-50 p-3">
             <p className="text-xs text-green-600">Saldo Atual</p>
             <p className="text-lg font-bold text-green-700">{formatCurrency(investment.currentBalance)}</p>
@@ -106,6 +113,10 @@ export function InvestmentDetailModal({
           <div className="rounded-lg bg-blue-50 p-3">
             <p className="text-xs text-blue-600">Total Aportado</p>
             <p className="text-lg font-bold text-blue-700">{formatCurrency(totalContributions)}</p>
+          </div>
+          <div className="rounded-lg bg-amber-50 p-3">
+            <p className="text-xs text-amber-600">Total Rendimentos</p>
+            <p className="text-lg font-bold text-amber-700">{formatCurrency(totalYields)}</p>
           </div>
           <div className="rounded-lg bg-red-50 p-3">
             <p className="text-xs text-red-600">Total Retirado</p>
@@ -163,6 +174,7 @@ export function InvestmentDetailModal({
                   />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
                   <Bar dataKey="aportes" name="Aportes" fill="#10b981" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="rendimentos" name="Rendimentos" fill="#f59e0b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="retiradas" name="Retiradas" fill="#ef4444" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -181,6 +193,8 @@ export function InvestmentDetailModal({
                 <div key={tx.id} className="flex items-center gap-3 px-3 py-2">
                   {tx.type === 'contribution' ? (
                     <ArrowUpCircle size={16} className="shrink-0 text-green-500" />
+                  ) : tx.type === 'yield' ? (
+                    <TrendingUp size={16} className="shrink-0 text-amber-500" />
                   ) : (
                     <ArrowDownCircle size={16} className="shrink-0 text-red-500" />
                   )}
@@ -191,9 +205,9 @@ export function InvestmentDetailModal({
                     </p>
                   </div>
                   <span
-                    className={`text-sm font-semibold ${tx.type === 'contribution' ? 'text-green-700' : 'text-red-600'}`}
+                    className={`text-sm font-semibold ${tx.type === 'yield' ? 'text-amber-600' : tx.type === 'contribution' ? 'text-green-700' : 'text-red-600'}`}
                   >
-                    {tx.type === 'contribution' ? '+' : '-'}
+                    {tx.type === 'withdrawal' ? '-' : '+'}
                     {formatCurrency(tx.amount)}
                   </span>
                 </div>

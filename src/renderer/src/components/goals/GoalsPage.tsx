@@ -4,6 +4,7 @@ import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { GoalCard } from './GoalCard'
 import { GoalFormModal } from './GoalFormModal'
 import { ContributionFormModal } from './ContributionFormModal'
+import { GoalChartModal } from './GoalChartModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { useGoalsStore } from '@/stores/useGoalsStore'
@@ -23,6 +24,7 @@ export function GoalsPage(): React.JSX.Element {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null)
+  const [chartGoal, setChartGoal] = useState<Goal | null>(null)
 
   const handleSaveGoal = (data: Omit<Goal, 'id' | 'createdAt' | 'contributions'>): void => {
     if (editingGoal) {
@@ -105,6 +107,7 @@ export function GoalsPage(): React.JSX.Element {
                   onDelete={() => setDeleteTarget(goal.id)}
                   onToggleActive={() => toggleGoalActive(goal.id)}
                   onAddContribution={() => setContributionGoal(goal)}
+                  onShowChart={() => setChartGoal(goal)}
                 />
               ))}
             </div>
@@ -127,6 +130,7 @@ export function GoalsPage(): React.JSX.Element {
                     onDelete={() => setDeleteTarget(goal.id)}
                     onToggleActive={() => toggleGoalActive(goal.id)}
                     onAddContribution={() => setContributionGoal(goal)}
+                    onShowChart={() => setChartGoal(goal)}
                   />
                 ))}
               </div>
@@ -150,6 +154,12 @@ export function GoalsPage(): React.JSX.Element {
         onClose={() => setContributionGoal(null)}
         onSave={handleAddContribution}
         goal={contributionGoal}
+      />
+
+      <GoalChartModal
+        open={!!chartGoal}
+        onClose={() => setChartGoal(null)}
+        goal={chartGoal}
       />
 
       <ConfirmDialog

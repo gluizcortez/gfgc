@@ -185,7 +185,7 @@ export interface CustomField {
 }
 
 export type AppTheme = 'light' | 'dark'
-export type AppSection = 'bills' | 'investments' | 'goals' | 'dashboard' | 'fgts' | 'settings' | 'annual' | 'networth' | 'help' | 'income'
+export type AppSection = 'bills' | 'investments' | 'goals' | 'dashboard' | 'fgts' | 'settings' | 'networth' | 'help' | 'income'
 
 export interface AppSettings {
   currency: string

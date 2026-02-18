@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react'
-import { Plus, DollarSign, Pencil, Trash2 } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Plus, DollarSign, Pencil, Trash2, Repeat } from 'lucide-react'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { MonthNavigator } from '@/components/layout/MonthNavigator'
 import { IncomeFormModal } from './IncomeFormModal'
+import { RecurringIncomeModal } from './RecurringIncomeModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { useIncomeStore } from '@/stores/useIncomeStore'
@@ -22,6 +23,7 @@ const CATEGORY_COLORS: Record<IncomeCategory, string> = {
 export function IncomePage(): React.JSX.Element {
   const [month, setMonth] = useState(getCurrentMonthKey())
   const [showForm, setShowForm] = useState(false)
+  const [showRecurring, setShowRecurring] = useState(false)
   const [editingEntry, setEditingEntry] = useState<IncomeEntry | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
@@ -29,7 +31,21 @@ export function IncomePage(): React.JSX.Element {
   const addEntry = useIncomeStore((s) => s.addEntry)
   const updateEntry = useIncomeStore((s) => s.updateEntry)
   const deleteEntry = useIncomeStore((s) => s.deleteEntry)
+  const generateRecurring = useIncomeStore((s) => s.generateRecurringForMonth)
   const addNotification = useUIStore((s) => s.addNotification)
+
+  // Auto-generate recurring income entries
+  const autoGenChecked = useRef<string>('')
+  useEffect(() => {
+    const key = month
+    if (autoGenChecked.current === key) return
+    autoGenChecked.current = key
+
+    const count = generateRecurring(month)
+    if (count > 0) {
+      addNotification(`${count} receita(s) recorrente(s) gerada(s)`, 'info')
+    }
+  }, [month])
 
   const monthEntries = useMemo(
     () => entries.filter((e) => e.monthKey === month).sort((a, b) => a.date.localeCompare(b.date)),
@@ -74,6 +90,15 @@ export function IncomePage(): React.JSX.Element {
         <h1 className="text-xl font-bold text-gray-900">Receitas</h1>
         <div className="flex items-center gap-3">
           <MonthNavigator monthKey={month} onChange={setMonth} />
+          <SimpleTooltip label="Gerenciar receitas recorrentes (pausar/reativar)">
+            <button
+              onClick={() => setShowRecurring(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              <Repeat size={16} />
+              Recorrentes
+            </button>
+          </SimpleTooltip>
           <SimpleTooltip label="Registrar uma nova fonte de receita neste mês">
             <button
               onClick={() => { setEditingEntry(null); setShowForm(true) }}
@@ -175,6 +200,11 @@ export function IncomePage(): React.JSX.Element {
         onSave={handleSave}
         initialData={editingEntry}
         defaultMonth={month}
+      />
+
+      <RecurringIncomeModal
+        open={showRecurring}
+        onClose={() => setShowRecurring(false)}
       />
 
       <ConfirmDialog

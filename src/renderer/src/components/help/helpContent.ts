@@ -24,7 +24,7 @@ export const HELP_SECTIONS: HelpSection[] = [
       },
       {
         heading: 'Principais funcionalidades',
-        body: '- **Contas Mensais**: Controle todas as suas despesas fixas e variáveis mês a mês.\n- **Investimentos**: Registre aportes, resgates e rendimentos de qualquer tipo de investimento.\n- **FGTS**: Acompanhe a evolução do seu saldo de FGTS.\n- **Metas**: Defina objetivos financeiros e monitore o progresso.\n- **Painel**: Veja um resumo visual de toda a sua saúde financeira.\n- **Resumo Anual**: Analise seus gastos e investimentos ao longo do ano.\n- **Patrimônio**: Veja a evolução do seu patrimônio líquido.'
+        body: '- **Contas Mensais**: Controle todas as suas despesas fixas e variáveis mês a mês.\n- **Investimentos**: Registre aportes, resgates e rendimentos de qualquer tipo de investimento.\n- **FGTS**: Acompanhe a evolução do seu saldo de FGTS.\n- **Metas**: Defina objetivos financeiros e monitore o progresso.\n- **Painel**: Veja um resumo visual mensal ou anual de toda a sua saúde financeira.\n- **Patrimônio**: Veja a evolução do seu patrimônio líquido.'
       },
       {
         heading: 'Workspaces',
@@ -194,21 +194,21 @@ export const HELP_SECTIONS: HelpSection[] = [
   },
   {
     id: 'annual',
-    title: 'Resumo Anual',
+    title: 'Visão Anual (Painel)',
     icon: 'calendar',
-    summary: 'Análise consolidada dos seus dados ao longo do ano.',
+    summary: 'Análise consolidada dos seus dados ao longo do ano, acessível pelo Painel.',
     content: [
       {
         heading: 'O que é?',
-        body: 'O Resumo Anual apresenta uma visão consolidada de todos os seus gastos e receitas ao longo de um ano, com gráficos mensais e análise por categoria.'
+        body: 'A Visão Anual está integrada ao **Painel**. Use o toggle **Mês/Ano** no topo do Painel para alternar entre a visão mensal e anual. A visão anual apresenta dados consolidados de contas, investimentos, FGTS, metas e receitas.'
       },
       {
         heading: 'O que você encontra',
-        body: '- **Gráfico de barras mensal**: Mostra o total de despesas por mês, facilitando a identificação de meses com gastos acima da média.\n- **Gráfico de categorias**: Pizza mostrando a distribuição anual dos gastos por categoria.\n- **Totais do ano**: Soma total de despesas, média mensal e outras métricas.'
+        body: '- **Cards resumo**: Total de despesas, receitas, investimentos e metas.\n- **Balanço do ano**: Receitas vs Despesas com saldo.\n- **Gráfico de barras mensal**: Despesas por mês.\n- **Gráfico de categorias**: Distribuição anual por categoria.\n- **Resumo de investimentos**: Aportes, rendimentos e retiradas no ano.\n- **Resumo FGTS**: Evolução do saldo.\n- **Receitas por categoria**: Distribuição das fontes de renda.'
       },
       {
-        heading: 'Quando usar?',
-        body: 'O Resumo Anual é ideal para:\n- Planejamento financeiro de longo prazo.\n- Identificar padrões de gastos ao longo dos meses.\n- Comparar gastos entre categorias.\n- Preparar informações para declaração de imposto de renda.'
+        heading: 'Como acessar?',
+        body: '1. Vá ao **Painel** no menu lateral.\n2. Clique no botão **Ano** ao lado do título.\n3. Selecione o ano desejado no dropdown.\n4. Use o botão **Exportar CSV** para exportar os dados.'
       }
     ]
   },
@@ -284,7 +284,7 @@ export const HELP_SECTIONS: HelpSection[] = [
       },
       {
         heading: 'Exportar relatórios',
-        body: 'Você pode exportar seus dados em CSV:\n- **Contas Mensais**: Clique no ícone de download para exportar as contas do mês atual.\n- **Resumo Anual**: Clique em "Exportar CSV" para exportar o resumo do ano selecionado.'
+        body: 'Você pode exportar seus dados em CSV:\n- **Contas Mensais**: Clique no ícone de download para exportar as contas do mês atual.\n- **Painel (Visão Anual)**: Alterne para a visão "Ano" no Painel e clique em "Exportar CSV" para exportar o resumo do ano selecionado.'
       },
       {
         heading: 'Barra de pesquisa',
