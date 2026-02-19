@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Download, Upload, Sun, Moon, HardDrive, RefreshCw, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Download, Upload, Sun, Moon, HardDrive, RefreshCw, Trash2, Loader2 } from 'lucide-react'
 import { CategoriesManager } from './CategoriesManager'
 import { WorkspaceManager } from './WorkspaceManager'
 import { Modal } from '@/components/shared/Modal'
@@ -12,6 +12,7 @@ import { useFGTSStore } from '@/stores/useFGTSStore'
 import { useIncomeStore } from '@/stores/useIncomeStore'
 import { DEFAULT_CATEGORIES } from '@/lib/constants'
 import type { AppData, AppSettings } from '@/types/models'
+import type { UpdateAsset } from '../../../preload/index.d'
 
 function collectAppData(): AppData {
   const { settings, workspaces } = useSettingsStore.getState()
@@ -25,6 +26,8 @@ function collectAppData(): AppData {
 
 const CONFIRMATION_PHRASE = 'apagar a base de dados por completo'
 
+type UpdateStatus = 'idle' | 'checking' | 'up_to_date' | 'update_available' | 'downloading' | 'downloaded' | 'error'
+
 export function SettingsPage(): React.JSX.Element {
   const theme = useSettingsStore((s) => s.settings.theme)
   const updateTheme = useSettingsStore((s) => s.updateTheme)
@@ -35,6 +38,52 @@ export function SettingsPage(): React.JSX.Element {
   const addNotification = useUIStore((s) => s.addNotification)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetInput, setResetInput] = useState('')
+
+  // Update state
+  const [appVersion, setAppVersion] = useState('')
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle')
+  const [latestVersion, setLatestVersion] = useState('')
+  const [updateAssets, setUpdateAssets] = useState<UpdateAsset[]>([])
+  const [updateError, setUpdateError] = useState('')
+
+  useEffect(() => {
+    window.api.getAppVersion().then((v) => setAppVersion(v))
+  }, [])
+
+  const handleCheckForUpdate = async (): Promise<void> => {
+    setUpdateStatus('checking')
+    setUpdateError('')
+    try {
+      const result = await window.api.checkForUpdate()
+      setLatestVersion(result.latestVersion)
+      setUpdateAssets(result.assets)
+      if (result.hasUpdate) {
+        setUpdateStatus('update_available')
+      } else {
+        setUpdateStatus('up_to_date')
+      }
+    } catch (err) {
+      setUpdateError(err instanceof Error ? err.message : 'Erro ao verificar atualizações')
+      setUpdateStatus('error')
+    }
+  }
+
+  const handleDownloadUpdate = async (asset: UpdateAsset): Promise<void> => {
+    setUpdateStatus('downloading')
+    try {
+      const result = await window.api.downloadUpdate(asset.url, asset.name)
+      if (result.success) {
+        setUpdateStatus('downloaded')
+        addNotification('Atualização baixada! A pasta do arquivo foi aberta.', 'success')
+      } else {
+        setUpdateError('Falha ao baixar a atualização')
+        setUpdateStatus('error')
+      }
+    } catch (err) {
+      setUpdateError(err instanceof Error ? err.message : 'Erro ao baixar atualização')
+      setUpdateStatus('error')
+    }
+  }
 
   const handleExport = async (): Promise<void> => {
     const data = collectAppData()
@@ -90,11 +139,132 @@ export function SettingsPage(): React.JSX.Element {
     addNotification('Base de dados apagada com sucesso', 'success')
   }
 
+  const macAsset = updateAssets.find((a) => a.name.endsWith('.dmg'))
+  const winAsset = updateAssets.find((a) => a.name.endsWith('.exe'))
+
   return (
     <div className="p-6">
       <h1 className="mb-6 text-xl font-bold text-gray-900">Configurações</h1>
 
       <div className="mx-auto max-w-3xl space-y-8">
+        {/* Updates */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h3 className="mb-3 text-sm font-semibold text-gray-700">
+            <RefreshCw size={14} className="mr-1.5 inline" />
+            Atualizações
+          </h3>
+          <div className="space-y-3">
+            {appVersion && (
+              <p className="text-xs text-gray-500">Versão atual: <span className="font-medium text-gray-700">v{appVersion}</span></p>
+            )}
+
+            {updateStatus === 'idle' && (
+              <button
+                onClick={handleCheckForUpdate}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                <RefreshCw size={16} />
+                Verificar Atualizações
+              </button>
+            )}
+
+            {updateStatus === 'checking' && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 size={16} className="animate-spin" />
+                Verificando atualizações...
+              </div>
+            )}
+
+            {updateStatus === 'up_to_date' && (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-green-50 px-4 py-2.5">
+                  <p className="text-sm font-medium text-green-700">Você está na versão mais recente (v{appVersion})</p>
+                </div>
+                <button
+                  onClick={handleCheckForUpdate}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Verificar novamente
+                </button>
+              </div>
+            )}
+
+            {updateStatus === 'update_available' && (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-blue-50 px-4 py-3">
+                  <p className="text-sm font-medium text-blue-700">
+                    Nova versão disponível: v{latestVersion}
+                  </p>
+                  <p className="mt-1 text-xs text-blue-500">
+                    Sua versão: v{appVersion} → v{latestVersion}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {macAsset && (
+                    <button
+                      onClick={() => handleDownloadUpdate(macAsset)}
+                      className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                    >
+                      <Download size={16} />
+                      Baixar para macOS (.dmg)
+                    </button>
+                  )}
+                  {winAsset && (
+                    <button
+                      onClick={() => handleDownloadUpdate(winAsset)}
+                      className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                    >
+                      <Download size={16} />
+                      Baixar para Windows (.exe)
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {updateStatus === 'downloading' && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 size={16} className="animate-spin" />
+                Baixando atualização...
+              </div>
+            )}
+
+            {updateStatus === 'downloaded' && (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-green-50 px-4 py-2.5">
+                  <p className="text-sm font-medium text-green-700">
+                    Atualização baixada com sucesso!
+                  </p>
+                  <p className="mt-1 text-xs text-green-600">
+                    A pasta contendo o instalador foi aberta. Execute o instalador para atualizar.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUpdateStatus('idle')}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
+
+            {updateStatus === 'error' && (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-red-50 px-4 py-2.5">
+                  <p className="text-sm font-medium text-red-700">Erro ao verificar atualizações</p>
+                  <p className="mt-1 text-xs text-red-500">{updateError}</p>
+                </div>
+                <button
+                  onClick={handleCheckForUpdate}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Theme */}
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-700">Aparência</h3>

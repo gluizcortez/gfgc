@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Target } from 'lucide-react'
+import { Plus, Target, Eye, Calendar, CalendarDays } from 'lucide-react'
 import { clsx } from 'clsx'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { MonthNavigator } from '@/components/layout/MonthNavigator'
@@ -11,9 +11,12 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { normalizePeriodKey } from '@/lib/calculations'
 import { getCurrentMonthKey } from '@/lib/formatters'
+import { PERIODICITY_LABELS } from '@/lib/constants'
 import { useGoalsStore } from '@/stores/useGoalsStore'
 import { useUIStore } from '@/stores/useUIStore'
 import type { Goal } from '@/types/models'
+
+type ViewMode = 'all' | 'yearly' | 'monthly'
 
 export function GoalsPage(): React.JSX.Element {
   const goals = useGoalsStore((s) => s.goals)
@@ -30,8 +33,12 @@ export function GoalsPage(): React.JSX.Element {
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null)
   const [chartGoal, setChartGoal] = useState<Goal | null>(null)
 
-  const [viewMode, setViewMode] = useState<'all' | 'period'>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>('all')
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  const currentYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
   const handleSaveGoal = (data: Omit<Goal, 'id' | 'createdAt' | 'contributions'>): void => {
     if (editingGoal) {
@@ -65,15 +72,31 @@ export function GoalsPage(): React.JSX.Element {
     }
   }
 
-  // Compute periodFilter for each goal based on viewMode and selectedMonth
-  const getPeriodFilter = (goal: Goal): string | undefined => {
-    if (goal.goalType !== 'manual') return undefined
-    const monthKey = viewMode === 'period' ? selectedMonth : getCurrentMonthKey()
-    return normalizePeriodKey(monthKey, goal.periodicity)
+  const handleViewDetails = (goal: Goal): void => {
+    if (goal.periodicity === 'yearly') {
+      setViewMode('yearly')
+    } else {
+      setViewMode('monthly')
+    }
   }
 
-  const activeGoals = goals.filter((g) => g.isActive)
-  const inactiveGoals = goals.filter((g) => !g.isActive)
+  // Filter goals by view mode
+  const getFilteredGoals = (): Goal[] => {
+    if (viewMode === 'yearly') return goals.filter((g) => g.periodicity === 'yearly')
+    if (viewMode === 'monthly') return goals.filter((g) => g.periodicity === 'monthly')
+    return goals
+  }
+
+  const filteredGoals = getFilteredGoals()
+  const activeGoals = filteredGoals.filter((g) => g.isActive)
+  const inactiveGoals = filteredGoals.filter((g) => !g.isActive)
+
+  // Period filter for GoalCards
+  const getPeriodFilter = (goal: Goal): string => {
+    if (viewMode === 'yearly') return `${selectedYear}`
+    if (viewMode === 'monthly') return normalizePeriodKey(selectedMonth, 'monthly')
+    return normalizePeriodKey(getCurrentMonthKey(), goal.periodicity)
+  }
 
   return (
     <div className="p-6">
@@ -92,20 +115,40 @@ export function GoalsPage(): React.JSX.Element {
                 Todos
               </button>
               <button
-                onClick={() => setViewMode('period')}
+                onClick={() => setViewMode('yearly')}
                 className={clsx(
-                  'rounded-r-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                  viewMode === 'period' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+                  'border-x border-gray-200 px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'yearly' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
                 )}
               >
-                Período
+                Anual
+              </button>
+              <button
+                onClick={() => setViewMode('monthly')}
+                className={clsx(
+                  'rounded-r-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'monthly' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+                )}
+              >
+                Mensal
               </button>
             </div>
           )}
         </div>
         <div className="flex items-center gap-3">
-          {viewMode === 'period' && (
+          {viewMode === 'monthly' && (
             <MonthNavigator monthKey={selectedMonth} onChange={setSelectedMonth} />
+          )}
+          {viewMode === 'yearly' && (
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           )}
           <SimpleTooltip label="Criar uma nova meta financeira (manual ou vinculada a investimentos)">
             <button
@@ -135,8 +178,89 @@ export function GoalsPage(): React.JSX.Element {
             }
           }}
         />
+      ) : viewMode === 'all' ? (
+        /* Summary view: compact list */
+        <div className="space-y-2">
+          {goals.filter((g) => g.isActive).length > 0 && (
+            <div className="space-y-2">
+              {goals.filter((g) => g.isActive).map((goal) => (
+                <div
+                  key={goal.id}
+                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-3.5 transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={clsx(
+                        'flex h-8 w-8 items-center justify-center rounded-lg',
+                        goal.periodicity === 'yearly' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                      )}
+                    >
+                      {goal.periodicity === 'yearly' ? <Calendar size={16} /> : <CalendarDays size={16} />}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">{goal.name}</h3>
+                      <p className="text-xs text-gray-400">
+                        {PERIODICITY_LABELS[goal.periodicity]}
+                        {goal.description && ` · ${goal.description}`}
+                      </p>
+                    </div>
+                  </div>
+                  <SimpleTooltip label="Ver detalhes da meta">
+                    <button
+                      onClick={() => handleViewDetails(goal)}
+                      className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                    >
+                      <Eye size={14} />
+                      Detalhes
+                    </button>
+                  </SimpleTooltip>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {goals.filter((g) => !g.isActive).length > 0 && (
+            <>
+              <h2 className="mt-4 mb-2 text-sm font-medium text-gray-400 uppercase tracking-wide">
+                Metas Pausadas
+              </h2>
+              {goals.filter((g) => !g.isActive).map((goal) => (
+                <div
+                  key={goal.id}
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-5 py-3.5 opacity-60"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                      {goal.periodicity === 'yearly' ? <Calendar size={16} /> : <CalendarDays size={16} />}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">{goal.name}</h3>
+                      <p className="text-xs text-gray-400">{PERIODICITY_LABELS[goal.periodicity]}</p>
+                    </div>
+                  </div>
+                  <SimpleTooltip label="Ver detalhes da meta">
+                    <button
+                      onClick={() => handleViewDetails(goal)}
+                      className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                    >
+                      <Eye size={14} />
+                      Detalhes
+                    </button>
+                  </SimpleTooltip>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       ) : (
+        /* Detail view: full GoalCards */
         <>
+          {filteredGoals.length === 0 && (
+            <p className="py-12 text-center text-sm text-gray-400">
+              Nenhuma meta {viewMode === 'yearly' ? 'anual' : 'mensal'} criada.
+            </p>
+          )}
+
           {activeGoals.length > 0 && (
             <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {activeGoals.map((goal) => (

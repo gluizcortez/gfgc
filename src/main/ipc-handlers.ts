@@ -1,8 +1,9 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, shell, app } from 'electron'
 import { readFileSync, writeFileSync } from 'fs'
 import { IPC } from '../shared/ipc-channels'
 import { loadData, saveData } from './storage'
 import { pickAndSaveAttachment, deleteAttachment, openAttachment } from './attachments'
+import { checkForUpdate, downloadUpdate } from './updater'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.DATA_LOAD, () => {
@@ -54,5 +55,21 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.ATTACHMENT_OPEN, (_event, relativePath: string) => {
     openAttachment(relativePath)
     return { success: true }
+  })
+
+  ipcMain.handle(IPC.UPDATE_CHECK, async () => {
+    return checkForUpdate()
+  })
+
+  ipcMain.handle(IPC.UPDATE_DOWNLOAD, async (_event, url: string, filename: string) => {
+    const result = await downloadUpdate(url, filename)
+    if (result.success && result.filePath) {
+      shell.showItemInFolder(result.filePath)
+    }
+    return result
+  })
+
+  ipcMain.handle(IPC.UPDATE_GET_VERSION, () => {
+    return app.getVersion()
   })
 }

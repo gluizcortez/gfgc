@@ -26,9 +26,26 @@ function App(): React.JSX.Element {
 
   usePersistence()
 
+  const addNotification = useUIStore((s) => s.addNotification)
+
   useEffect(() => {
     loadAndHydrate()
-      .then(() => setLoading(false))
+      .then(() => {
+        setLoading(false)
+        // Auto-check for updates on startup
+        window.api.checkForUpdate()
+          .then((result) => {
+            if (result.hasUpdate) {
+              addNotification(
+                `Nova versão disponível: v${result.latestVersion}. Acesse Configurações para atualizar.`,
+                'info'
+              )
+            }
+          })
+          .catch(() => {
+            // Silently ignore update check errors on startup
+          })
+      })
       .catch((err) => {
         console.error('Failed to load data:', err)
         setLoading(false)

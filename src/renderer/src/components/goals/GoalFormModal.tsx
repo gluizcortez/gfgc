@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Modal } from '@/components/shared/Modal'
 import { CurrencyInput } from '@/components/shared/CurrencyInput'
-import { PERIODICITY_LABELS } from '@/lib/constants'
+// Periodicity options restricted to monthly/yearly
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import type { Goal, GoalType, Periodicity } from '@/types/models'
@@ -97,7 +97,7 @@ export function GoalFormModal({
       goalType,
       targetAmount,
       periodicity,
-      customPeriodDays: periodicity === 'custom' ? customPeriodDays : undefined,
+      customPeriodDays: undefined,
       startDate,
       endDate: endDate || undefined,
       linkedWorkspaceIds: goalType === 'investment_linked' ? linkedWorkspaceIds : [],
@@ -161,29 +161,11 @@ export function GoalFormModal({
               onChange={(e) => setPeriodicity(e.target.value as Periodicity)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
             >
-              {Object.entries(PERIODICITY_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
+              <option value="monthly">Mensal</option>
+              <option value="yearly">Anual</option>
             </select>
           </div>
         </div>
-
-        {periodicity === 'custom' && (
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Período em dias
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={customPeriodDays}
-              onChange={(e) => setCustomPeriodDays(Number(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
-            />
-          </div>
-        )}
 
         {goalType === 'investment_linked' && (
           <>

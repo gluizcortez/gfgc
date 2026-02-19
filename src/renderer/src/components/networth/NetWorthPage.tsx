@@ -52,6 +52,9 @@ export function NetWorthPage(): React.JSX.Element {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Patrimônio</h1>
+        <p className="mt-1 text-xs text-gray-400">
+          O cálculo de patrimônio considera apenas investimentos e FGTS. Metas financeiras não são incluídas.
+        </p>
       </div>
 
       {/* Total card */}
