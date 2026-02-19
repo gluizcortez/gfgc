@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { GoalProgressBar } from './GoalProgressBar'
 import { GoalContributionHistory } from './GoalContributionHistory'
-import { calculateOverallGoalProgress, type GoalProgress } from '@/lib/calculations'
+import { calculateOverallGoalProgress, calculatePeriodGoalProgress, normalizePeriodKey, type GoalProgress } from '@/lib/calculations'
 import { formatCurrency, getCurrentMonthKey } from '@/lib/formatters'
 import { PERIODICITY_LABELS } from '@/lib/constants'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
@@ -12,6 +12,7 @@ import type { Goal } from '@/types/models'
 
 interface GoalCardProps {
   goal: Goal
+  periodFilter?: string
   onEdit: () => void
   onDelete: () => void
   onToggleActive: () => void
@@ -21,6 +22,7 @@ interface GoalCardProps {
 
 export function GoalCard({
   goal,
+  periodFilter,
   onEdit,
   onDelete,
   onToggleActive,
@@ -63,9 +65,16 @@ export function GoalCard({
     ? investmentProgress
     : null
 
-  const overallProgress = goal.goalType === 'manual'
-    ? calculateOverallGoalProgress(goal)
-    : null
+  const manualProgress = useMemo(() => {
+    if (goal.goalType !== 'manual') return null
+    if (goal.contributions.length === 0) return null
+    if (periodFilter) {
+      return calculatePeriodGoalProgress(goal, periodFilter)
+    }
+    // Default: current period based on goal's periodicity
+    const currentPeriod = normalizePeriodKey(getCurrentMonthKey(), goal.periodicity)
+    return calculatePeriodGoalProgress(goal, currentPeriod)
+  }, [goal, periodFilter])
 
   return (
     <div
@@ -167,10 +176,12 @@ export function GoalCard({
         </div>
       )}
 
-      {overallProgress && (
+      {manualProgress && (
         <div className="mb-3">
-          <p className="mb-1 text-xs font-medium text-gray-500">Progresso Geral</p>
-          <GoalProgressBar progress={overallProgress} />
+          <p className="mb-1 text-xs font-medium text-gray-500">
+            {periodFilter ? 'Progresso do Período' : 'Progresso Atual'}
+          </p>
+          <GoalProgressBar progress={manualProgress} />
         </div>
       )}
 

@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { Plus, Target } from 'lucide-react'
+import { clsx } from 'clsx'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
+import { MonthNavigator } from '@/components/layout/MonthNavigator'
 import { GoalCard } from './GoalCard'
 import { GoalFormModal } from './GoalFormModal'
 import { ContributionFormModal } from './ContributionFormModal'
 import { GoalChartModal } from './GoalChartModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { normalizePeriodKey } from '@/lib/calculations'
+import { getCurrentMonthKey } from '@/lib/formatters'
 import { useGoalsStore } from '@/stores/useGoalsStore'
 import { useUIStore } from '@/stores/useUIStore'
 import type { Goal } from '@/types/models'
@@ -25,6 +29,9 @@ export function GoalsPage(): React.JSX.Element {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [contributionGoal, setContributionGoal] = useState<Goal | null>(null)
   const [chartGoal, setChartGoal] = useState<Goal | null>(null)
+
+  const [viewMode, setViewMode] = useState<'all' | 'period'>('all')
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey())
 
   const handleSaveGoal = (data: Omit<Goal, 'id' | 'createdAt' | 'contributions'>): void => {
     if (editingGoal) {
@@ -58,25 +65,61 @@ export function GoalsPage(): React.JSX.Element {
     }
   }
 
+  // Compute periodFilter for each goal based on viewMode and selectedMonth
+  const getPeriodFilter = (goal: Goal): string | undefined => {
+    if (goal.goalType !== 'manual') return undefined
+    const monthKey = viewMode === 'period' ? selectedMonth : getCurrentMonthKey()
+    return normalizePeriodKey(monthKey, goal.periodicity)
+  }
+
   const activeGoals = goals.filter((g) => g.isActive)
   const inactiveGoals = goals.filter((g) => !g.isActive)
 
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Metas</h1>
-        <SimpleTooltip label="Criar uma nova meta financeira (manual ou vinculada a investimentos)">
-          <button
-            onClick={() => {
-              setEditingGoal(null)
-              setShowGoalForm(true)
-            }}
-            className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-          >
-            <Plus size={16} />
-            Nova Meta
-          </button>
-        </SimpleTooltip>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-gray-900">Metas</h1>
+          {goals.length > 0 && (
+            <div className="flex rounded-lg border border-gray-200">
+              <button
+                onClick={() => setViewMode('all')}
+                className={clsx(
+                  'rounded-l-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'all' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+                )}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setViewMode('period')}
+                className={clsx(
+                  'rounded-r-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'period' ? 'bg-primary-50 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+                )}
+              >
+                Período
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {viewMode === 'period' && (
+            <MonthNavigator monthKey={selectedMonth} onChange={setSelectedMonth} />
+          )}
+          <SimpleTooltip label="Criar uma nova meta financeira (manual ou vinculada a investimentos)">
+            <button
+              onClick={() => {
+                setEditingGoal(null)
+                setShowGoalForm(true)
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              <Plus size={16} />
+              Nova Meta
+            </button>
+          </SimpleTooltip>
+        </div>
       </div>
 
       {goals.length === 0 ? (
@@ -100,6 +143,7 @@ export function GoalsPage(): React.JSX.Element {
                 <GoalCard
                   key={goal.id}
                   goal={goal}
+                  periodFilter={getPeriodFilter(goal)}
                   onEdit={() => {
                     setEditingGoal(goal)
                     setShowGoalForm(true)
@@ -123,6 +167,7 @@ export function GoalsPage(): React.JSX.Element {
                   <GoalCard
                     key={goal.id}
                     goal={goal}
+                    periodFilter={getPeriodFilter(goal)}
                     onEdit={() => {
                       setEditingGoal(goal)
                       setShowGoalForm(true)

@@ -10,6 +10,8 @@ interface IncomeState {
   updateEntry: (id: EntityId, updates: Partial<IncomeEntry>) => void
   deleteEntry: (id: EntityId) => void
   generateRecurringForMonth: (monthKey: MonthKey) => number
+  removeRecurrence: (name: string, category: string) => void
+  restoreRecurrence: (name: string, category: string) => void
 
   hydrate: (entries: IncomeEntry[]) => void
 }
@@ -85,6 +87,24 @@ export const useIncomeStore = create<IncomeState>()(
 
       return count
     },
+
+    removeRecurrence: (name, category) =>
+      set((state) => {
+        for (const entry of state.entries) {
+          if (entry.name === name && entry.category === category) {
+            entry.isRecurring = false
+          }
+        }
+      }),
+
+    restoreRecurrence: (name, category) =>
+      set((state) => {
+        for (const entry of state.entries) {
+          if (entry.name === name && entry.category === category) {
+            entry.isRecurring = true
+          }
+        }
+      }),
 
     hydrate: (entries) =>
       set((state) => {

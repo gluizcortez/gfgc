@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { X, RotateCcw } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { formatCurrency } from '@/lib/formatters'
@@ -17,46 +17,76 @@ interface RecurringGroup {
   name: string
   category: IncomeCategory
   amount: number
-  latestEntry: IncomeEntry
   isActive: boolean
 }
 
 export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProps): React.JSX.Element {
   const entries = useIncomeStore((s) => s.entries)
-  const updateEntry = useIncomeStore((s) => s.updateEntry)
+  const removeRecurrence = useIncomeStore((s) => s.removeRecurrence)
+  const restoreRecurrence = useIncomeStore((s) => s.restoreRecurrence)
 
   const recurringGroups = useMemo((): RecurringGroup[] => {
     // Find the latest entry for each name+category combination
-    const map = new Map<string, IncomeEntry>()
+    const latestMap = new Map<string, IncomeEntry>()
     for (const entry of entries) {
       const key = `${entry.name}::${entry.category}`
-      const existing = map.get(key)
+      const existing = latestMap.get(key)
       if (!existing || entry.monthKey > existing.monthKey) {
-        map.set(key, entry)
+        latestMap.set(key, entry)
       }
     }
 
-    // Only show entries that were ever recurring
-    const allRecurring = entries.filter((e) => e.isRecurring)
-    const recurringKeys = new Set(allRecurring.map((e) => `${e.name}::${e.category}`))
+    // Collect all keys that were ever recurring
+    const everRecurringKeys = new Set<string>()
+    for (const entry of entries) {
+      if (entry.isRecurring) {
+        everRecurringKeys.add(`${entry.name}::${entry.category}`)
+      }
+    }
 
-    return Array.from(recurringKeys)
+    // Also include keys where ALL entries are not recurring (removed ones)
+    // Check if any entry for this key was ever recurring by looking at all entries
+    const allKeys = new Set<string>()
+    for (const entry of entries) {
+      allKeys.add(`${entry.name}::${entry.category}`)
+    }
+
+    // A group should show if it has or had recurring entries
+    // We detect "had recurring" by checking if multiple entries exist for same name+category
+    // (auto-generated entries are created with isRecurring: true, if all are false now, it was removed)
+    const groupKeys = new Set<string>()
+    for (const key of allKeys) {
+      const keyEntries = entries.filter((e) => `${e.name}::${e.category}` === key)
+      const hasAnyRecurring = keyEntries.some((e) => e.isRecurring)
+      const hasMultiple = keyEntries.length > 1
+      if (hasAnyRecurring || hasMultiple) {
+        groupKeys.add(key)
+      }
+    }
+
+    return Array.from(groupKeys)
       .map((key) => {
-        const latest = map.get(key)!
+        const latest = latestMap.get(key)!
+        const hasAnyActive = entries.some(
+          (e) => e.name === latest.name && e.category === latest.category && e.isRecurring
+        )
         return {
           key,
           name: latest.name,
           category: latest.category,
           amount: latest.amount,
-          latestEntry: latest,
-          isActive: latest.isRecurring
+          isActive: hasAnyActive
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [entries])
 
   const handleToggle = (group: RecurringGroup): void => {
-    updateEntry(group.latestEntry.id, { isRecurring: !group.isActive })
+    if (group.isActive) {
+      removeRecurrence(group.name, group.category)
+    } else {
+      restoreRecurrence(group.name, group.category)
+    }
   }
 
   return (
@@ -68,7 +98,7 @@ export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProp
       ) : (
         <div className="space-y-1">
           <p className="mb-3 text-xs text-gray-400">
-            Pause receitas que não devem mais ser geradas automaticamente nos próximos meses.
+            Remova receitas que não devem mais ser geradas automaticamente. A remoção é global — independente do mês atual.
           </p>
           <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
             {recurringGroups.map((group) => (
@@ -83,21 +113,21 @@ export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProp
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     group.isActive
                       ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
+                      : 'bg-red-100 text-red-600'
                   }`}
                 >
-                  {group.isActive ? 'Ativo' : 'Pausado'}
+                  {group.isActive ? 'Ativo' : 'Removido'}
                 </span>
-                <SimpleTooltip label={group.isActive ? 'Pausar recorrência' : 'Reativar recorrência'}>
+                <SimpleTooltip label={group.isActive ? 'Remover recorrência' : 'Restaurar recorrência'}>
                   <button
                     onClick={() => handleToggle(group)}
                     className={`rounded-md p-1.5 ${
                       group.isActive
-                        ? 'text-green-500 hover:bg-amber-50 hover:text-amber-600'
+                        ? 'text-gray-400 hover:bg-red-50 hover:text-red-500'
                         : 'text-gray-400 hover:bg-green-50 hover:text-green-600'
                     }`}
                   >
-                    {group.isActive ? <Pause size={16} /> : <Play size={16} />}
+                    {group.isActive ? <X size={16} /> : <RotateCcw size={16} />}
                   </button>
                 </SimpleTooltip>
               </div>

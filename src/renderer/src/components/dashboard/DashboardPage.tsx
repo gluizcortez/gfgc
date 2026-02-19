@@ -8,6 +8,7 @@ import { AlertCards } from './AlertCards'
 import { ExpensePieChart } from './ExpensePieChart'
 import { InvestmentLineChart } from './InvestmentLineChart'
 import { PlannedVsActualBarChart } from './PlannedVsActualBarChart'
+import { GoalContributionsBarChart } from './GoalContributionsBarChart'
 import { FGTSDashboardChart } from './FGTSDashboardChart'
 import { PortfolioPieChart } from './PortfolioPieChart'
 import { InvestmentBreakdownChart } from './InvestmentBreakdownChart'
@@ -292,6 +293,7 @@ export function DashboardPage(): React.JSX.Element {
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <PlannedVsActualBarChart goals={filteredGoals} transactions={transactions} />
+            <GoalContributionsBarChart goals={filteredGoals} />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -12,6 +12,7 @@ import {
 import { clsx } from 'clsx'
 import { Modal } from '@/components/shared/Modal'
 import { formatCurrency } from '@/lib/formatters'
+import { normalizePeriodKey } from '@/lib/calculations'
 import type { Goal } from '@/types/models'
 
 interface GoalChartModalProps {
@@ -32,7 +33,8 @@ export function GoalChartModal({ open, onClose, goal }: GoalChartModalProps): Re
 
     const map = new Map<string, number>()
     for (const c of goal.contributions) {
-      map.set(c.periodKey, (map.get(c.periodKey) || 0) + c.actualAmount)
+      const key = normalizePeriodKey(c.periodKey, goal.periodicity)
+      map.set(key, (map.get(key) || 0) + c.actualAmount)
     }
 
     return Array.from(map.entries())

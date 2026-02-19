@@ -1,4 +1,4 @@
-import type { BillEntry, Investment, InvestmentTransaction, Goal, Category, MonthlyBillRecord, FGTSRecord, MonthKey } from '@/types/models'
+import type { BillEntry, Investment, InvestmentTransaction, Goal, Category, MonthlyBillRecord, FGTSRecord, MonthKey, Periodicity } from '@/types/models'
 import { getEffectiveStatus } from './billStatus'
 
 export function calculateBillsTotals(bills: BillEntry[]) {
@@ -54,14 +54,56 @@ export function calculateGoalProgress(goal: Goal): GoalProgress {
   }
 }
 
+export function normalizePeriodKey(periodKey: string, periodicity: Periodicity): string {
+  const parts = periodKey.split('-').map(Number)
+  const year = parts[0]
+  const month = parts[1] || 1
+  switch (periodicity) {
+    case 'yearly':
+      return `${year}`
+    case 'semiannual':
+      return month <= 6 ? `${year}-H1` : `${year}-H2`
+    case 'quarterly':
+      return `${year}-Q${Math.ceil(month / 3)}`
+    case 'monthly':
+      return periodKey
+    default:
+      return periodKey // custom
+  }
+}
+
+export function calculatePeriodGoalProgress(goal: Goal, periodFilter: string): GoalProgress {
+  const contributions = goal.contributions.filter((c) => {
+    const normalized = normalizePeriodKey(c.periodKey, goal.periodicity)
+    return normalized === periodFilter
+  })
+  const totalActual = contributions.reduce((sum, c) => sum + c.actualAmount, 0)
+  const target = goal.targetAmount
+  const percentage = target > 0 ? (totalActual / target) * 100 : 0
+  const difference = totalActual - target
+
+  let status: GoalProgress['status'] = 'on_target'
+  if (difference > 0) status = 'above'
+  else if (difference < 0) status = 'below'
+
+  return {
+    target,
+    actual: totalActual,
+    percentage: Math.round(percentage * 10) / 10,
+    status,
+    difference
+  }
+}
+
 export function calculateOverallGoalProgress(goal: Goal): GoalProgress {
-  // Group contributions by periodKey to count unique periods
+  // Group contributions by normalized periodKey to count unique periods
   const periodMap = new Map<string, number>()
   for (const c of goal.contributions) {
-    periodMap.set(c.periodKey, (periodMap.get(c.periodKey) || 0) + c.actualAmount)
+    const normalizedKey = normalizePeriodKey(c.periodKey, goal.periodicity)
+    periodMap.set(normalizedKey, (periodMap.get(normalizedKey) || 0) + c.actualAmount)
   }
   const totalTarget = periodMap.size * goal.targetAmount
-  const totalActual = goal.contributions.reduce((sum, c) => sum + c.actualAmount, 0)
+  const totalActual = [...periodMap.values()].reduce((sum, v) => sum + v, 0)
   const percentage = totalTarget > 0 ? (totalActual / totalTarget) * 100 : 0
   const difference = totalActual - totalTarget
 
