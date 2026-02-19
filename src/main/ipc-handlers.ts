@@ -5,6 +5,16 @@ import { loadData, saveData } from './storage'
 import { pickAndSaveAttachment, deleteAttachment, openAttachment } from './attachments'
 import { checkForUpdate, downloadUpdate } from './updater'
 
+function isValidAppData(data: unknown): data is Record<string, unknown> {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  if (!d.settings || typeof d.settings !== 'object') return false
+  if (!Array.isArray(d.bills)) return false
+  if (!Array.isArray(d.investments)) return false
+  if (!Array.isArray(d.goals)) return false
+  return true
+}
+
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.DATA_LOAD, () => {
     return loadData()
@@ -37,6 +47,9 @@ export function registerIpcHandlers(): void {
     if (!result.canceled && result.filePaths.length > 0) {
       const raw = readFileSync(result.filePaths[0], 'utf-8')
       const data = JSON.parse(raw)
+      if (!isValidAppData(data)) {
+        return { success: false, error: 'Arquivo inválido: estrutura de dados não reconhecida' }
+      }
       saveData(data)
       return { success: true, data }
     }

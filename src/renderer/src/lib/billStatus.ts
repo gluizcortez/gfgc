@@ -8,10 +8,9 @@ import type { BillEntry, BillStatus } from '@/types/models'
  */
 export function getEffectiveStatus(entry: BillEntry): BillStatus {
   if (entry.status === 'paid') return 'paid'
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const due = new Date(entry.dueDate + 'T00:00:00')
-  if (due < today) return 'overdue'
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  if (entry.dueDate < todayStr) return 'overdue'
   return 'pending'
 }
 

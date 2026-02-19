@@ -38,6 +38,8 @@ export function SettingsPage(): React.JSX.Element {
   const addNotification = useUIStore((s) => s.addNotification)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetInput, setResetInput] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   // Update state
   const [appVersion, setAppVersion] = useState('')
@@ -86,14 +88,20 @@ export function SettingsPage(): React.JSX.Element {
   }
 
   const handleExport = async (): Promise<void> => {
-    const data = collectAppData()
-    const result = await window.api.exportData(data)
-    if (result.success) {
-      addNotification('Dados exportados com sucesso', 'success')
+    setIsExporting(true)
+    try {
+      const data = collectAppData()
+      const result = await window.api.exportData(data)
+      if (result.success) {
+        addNotification('Dados exportados com sucesso', 'success')
+      }
+    } finally {
+      setIsExporting(false)
     }
   }
 
   const handleImport = async (): Promise<void> => {
+    setIsImporting(true)
     const result = await window.api.importData()
     if (result.success && result.data) {
       const data = result.data as AppData
@@ -109,6 +117,7 @@ export function SettingsPage(): React.JSX.Element {
       }
       addNotification('Dados importados com sucesso', 'success')
     }
+    setIsImporting(false)
   }
 
   const handleResetDatabase = (): void => {
@@ -317,7 +326,7 @@ export function SettingsPage(): React.JSX.Element {
                 min={1}
                 max={100}
                 value={backupRetention}
-                onChange={(e) => updateSettings({ backupRetentionCount: Math.max(1, Number(e.target.value)) })}
+                onChange={(e) => updateSettings({ backupRetentionCount: Math.min(100, Math.max(1, Number(e.target.value) || 1)) })}
                 className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-primary-500 focus:outline-none"
               />
               <span className="text-sm text-gray-600">backups</span>
@@ -351,17 +360,19 @@ export function SettingsPage(): React.JSX.Element {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              disabled={isExporting}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
-              <Download size={16} />
-              Exportar Dados
+              {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {isExporting ? 'Exportando...' : 'Exportar Dados'}
             </button>
             <button
               onClick={handleImport}
-              className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              disabled={isImporting}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
-              <Upload size={16} />
-              Importar Dados
+              {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {isImporting ? 'Importando...' : 'Importar Dados'}
             </button>
           </div>
         </div>

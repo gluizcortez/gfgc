@@ -30,6 +30,9 @@ interface BillsState {
   // Utility
   duplicateMonth: (workspaceId: EntityId, sourceMonth: MonthKey, targetMonth: MonthKey) => void
 
+  // Category reassignment
+  reassignCategory: (oldCategoryId: EntityId, newCategoryId: EntityId) => void
+
   // Cleanup
   deleteWorkspaceData: (workspaceId: EntityId) => void
 
@@ -199,6 +202,17 @@ export const useBillsStore = create<BillsState>()(
             monthKey: targetMonth,
             bills: clonedBills
           })
+        }
+      }),
+
+    reassignCategory: (oldCategoryId, newCategoryId) =>
+      set((state) => {
+        for (const record of state.monthlyRecords) {
+          for (const entry of record.entries) {
+            if (entry.categoryId === oldCategoryId) {
+              entry.categoryId = newCategoryId
+            }
+          }
         }
       }),
 

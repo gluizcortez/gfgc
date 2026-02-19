@@ -33,8 +33,8 @@ export function CurrencyInput({
 
     const numericStr = cleaned.replace(',', '.')
     const num = parseFloat(numericStr)
-    if (!isNaN(num)) {
-      onChange(Math.round(num * 100))
+    if (!isNaN(num) && num >= 0) {
+      onChange(Math.round(Math.min(num, 9999999.99) * 100))
     } else if (cleaned === '') {
       onChange(0)
     }

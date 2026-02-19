@@ -1,7 +1,15 @@
 import { app, shell, dialog } from 'electron'
-import { join } from 'path'
+import { join, resolve, basename } from 'path'
 import { existsSync, mkdirSync, copyFileSync, unlinkSync, statSync } from 'fs'
-import { basename } from 'path'
+
+const MAX_ATTACHMENT_SIZE = 100 * 1024 * 1024 // 100MB
+
+function safePath(relativePath: string): string | null {
+  const dir = getAttachmentsDir()
+  const full = resolve(dir, relativePath)
+  if (!full.startsWith(dir)) return null
+  return full
+}
 
 function getAttachmentsDir(): string {
   const dir = join(app.getPath('userData'), 'attachments')
@@ -39,8 +47,12 @@ export async function pickAndSaveAttachment(): Promise<AttachmentResult | null> 
   const storedName = `${id}${ext}`
   const destPath = join(getAttachmentsDir(), storedName)
 
+  const stat = statSync(sourcePath)
+  if (stat.size > MAX_ATTACHMENT_SIZE) {
+    throw new Error(`Arquivo excede o limite de 100MB (${(stat.size / 1024 / 1024).toFixed(1)}MB)`)
+  }
+
   copyFileSync(sourcePath, destPath)
-  const stat = statSync(destPath)
 
   return {
     id,
@@ -52,14 +64,16 @@ export async function pickAndSaveAttachment(): Promise<AttachmentResult | null> 
 }
 
 export function deleteAttachment(relativePath: string): void {
-  const fullPath = join(getAttachmentsDir(), relativePath)
+  const fullPath = safePath(relativePath)
+  if (!fullPath) return
   if (existsSync(fullPath)) {
     unlinkSync(fullPath)
   }
 }
 
 export function openAttachment(relativePath: string): void {
-  const fullPath = join(getAttachmentsDir(), relativePath)
+  const fullPath = safePath(relativePath)
+  if (!fullPath) return
   if (existsSync(fullPath)) {
     shell.openPath(fullPath)
   }

@@ -3,6 +3,7 @@ import { immer } from 'zustand/middleware/immer'
 import { nanoid } from 'nanoid'
 import type { AppSettings, Workspace, Category, CustomField, EntityId, AppTheme } from '@/types/models'
 import { DEFAULT_CATEGORIES, WORKSPACE_COLORS } from '@/lib/constants'
+import { useBillsStore } from './useBillsStore'
 
 interface SettingsState {
   settings: AppSettings
@@ -75,10 +76,13 @@ export const useSettingsStore = create<SettingsState>()(
         if (cat) Object.assign(cat, updates)
       }),
 
-    deleteCategory: (id) =>
+    deleteCategory: (id) => {
+      const fallbackId = 'cat-9' // "Outros"
+      useBillsStore.getState().reassignCategory(id, fallbackId)
       set((state) => {
         state.settings.categories = state.settings.categories.filter((c) => c.id !== id)
-      }),
+      })
+    },
 
     addCustomField: (field) =>
       set((state) => {

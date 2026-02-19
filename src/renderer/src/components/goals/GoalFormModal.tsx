@@ -89,8 +89,11 @@ export function GoalFormModal({
     )
   }
 
+  const isDateInvalid = !!(endDate && startDate && endDate < startDate)
+
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
+    if (isDateInvalid) return
     onSave({
       name,
       description,
@@ -234,9 +237,13 @@ export function GoalFormModal({
             <input
               type="date"
               value={endDate}
+              min={startDate || undefined}
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
             />
+            {endDate && startDate && endDate < startDate && (
+              <p className="mt-1 text-xs text-red-500">A data limite deve ser posterior à data de início</p>
+            )}
           </div>
         </div>
 
@@ -250,7 +257,8 @@ export function GoalFormModal({
           </button>
           <button
             type="submit"
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            disabled={isDateInvalid}
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
           >
             {initialData ? 'Salvar' : 'Criar Meta'}
           </button>

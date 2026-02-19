@@ -67,9 +67,10 @@ export const useUIStore = create<UIState>()((set) => ({
   addNotification: (message, type) => {
     const id = String(++notifCounter)
     set((s) => ({ notifications: [...s.notifications, { id, message, type }] }))
+    const duration = type === 'info' ? 6000 : type === 'error' ? 5000 : 3000
     setTimeout(() => {
       set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) }))
-    }, 3000)
+    }, duration)
   },
 
   removeNotification: (id) =>
