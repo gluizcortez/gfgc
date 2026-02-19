@@ -13,6 +13,7 @@ import {
   DollarSign,
   HelpCircle
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useUIStore } from '@/stores/useUIStore'
 import type { AppSection } from '@/types/models'
 
@@ -33,6 +34,11 @@ export function Sidebar(): React.JSX.Element {
   const setActiveSection = useUIStore((s) => s.setActiveSection)
   const collapsed = useUIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
+  const [appVersion, setAppVersion] = useState('')
+
+  useEffect(() => {
+    window.api.getAppVersion().then((v) => setAppVersion(v))
+  }, [])
 
   return (
     <aside
@@ -90,9 +96,10 @@ export function Sidebar(): React.JSX.Element {
 
       <div className="border-t border-gray-200 p-3">
         {!collapsed && (
-          <p className="text-center text-xs text-gray-400">
-            Gestão Financeira
-          </p>
+          <div className="text-center">
+            <p className="text-xs text-gray-400">Gestão Financeira</p>
+            {appVersion && <p className="text-[10px] text-gray-300">v{appVersion}</p>}
+          </div>
         )}
       </div>
     </aside>
