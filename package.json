@@ -1,6 +1,6 @@
 {
   "name": "gfgc",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Gestão Financeira Gabriel Carol",
   "main": "./out/main/index.js",
   "scripts": {

@@ -208,7 +208,7 @@ export const useBillsStore = create<BillsState>()(
     reassignCategory: (oldCategoryId, newCategoryId) =>
       set((state) => {
         for (const record of state.monthlyRecords) {
-          for (const entry of record.entries) {
+          for (const entry of record.bills) {
             if (entry.categoryId === oldCategoryId) {
               entry.categoryId = newCategoryId
             }
