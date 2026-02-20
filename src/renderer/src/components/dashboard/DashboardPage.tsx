@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { LayoutDashboard, Calendar as CalendarIcon, FileDown } from 'lucide-react'
+import { LayoutDashboard, Calendar as CalendarIcon, FileDown, FileText } from 'lucide-react'
 import { clsx } from 'clsx'
 import { MonthNavigator } from '@/components/layout/MonthNavigator'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
@@ -16,6 +16,7 @@ import { ExpenseTrendChart } from './ExpenseTrendChart'
 import { CategoryTrendChart } from './CategoryTrendChart'
 import { IncomePieChart } from './IncomePieChart'
 import { YearView } from './YearView'
+import { MonthlyReportModal } from './MonthlyReportModal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBillsStore } from '@/stores/useBillsStore'
@@ -52,6 +53,7 @@ export function DashboardPage(): React.JSX.Element {
   const [selectedInvestWs, setSelectedInvestWs] = useState<string[]>([])
   const [selectedIncomeWs, setSelectedIncomeWs] = useState<string[]>([])
   const [selectedGoalIds, setSelectedGoalIds] = useState<string[]>([])
+  const [showReport, setShowReport] = useState(false)
 
   // Default: select all
   const activeBillWs = selectedBillWs.length > 0 ? selectedBillWs : billWorkspaces.map((w) => w.id)
@@ -177,7 +179,17 @@ export function DashboardPage(): React.JSX.Element {
           </div>
         </div>
         {viewMode === 'month' ? (
-          <MonthNavigator monthKey={month} onChange={setMonth} />
+          <div className="flex items-center gap-2">
+            <MonthNavigator monthKey={month} onChange={setMonth} />
+            <SimpleTooltip label="Relatório mensal">
+              <button
+                onClick={() => setShowReport(true)}
+                className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+              >
+                <FileText size={16} />
+              </button>
+            </SimpleTooltip>
+          </div>
         ) : (
           <select
             value={year}
@@ -347,6 +359,12 @@ export function DashboardPage(): React.JSX.Element {
           </div>
         </>
       )}
+
+      <MonthlyReportModal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        monthKey={month}
+      />
     </div>
   )
 }

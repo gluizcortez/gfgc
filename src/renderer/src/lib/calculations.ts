@@ -176,6 +176,70 @@ export function calculateNetWorth(investments: Investment[], fgtsRecords: FGTSRe
   return investTotal + fgtsLatest
 }
 
+// Goal projection
+export interface GoalProjection {
+  estimatedDate: string | null // "2027-08" format or null
+  avgPerPeriod: number
+  periodsRemaining: number
+  hasEnoughData: boolean
+}
+
+export function calculateGoalProjection(
+  goal: Goal,
+  investmentTransactions?: InvestmentTransaction[]
+): GoalProjection {
+  const noData: GoalProjection = { estimatedDate: null, avgPerPeriod: 0, periodsRemaining: 0, hasEnoughData: false }
+  let avgPerPeriod = 0
+
+  if (goal.goalType === 'manual') {
+    if (goal.contributions.length === 0) return noData
+    const periodMap = new Map<string, number>()
+    for (const c of goal.contributions) {
+      const key = normalizePeriodKey(c.periodKey, goal.periodicity)
+      periodMap.set(key, (periodMap.get(key) || 0) + c.actualAmount)
+    }
+    if (periodMap.size < 2) return noData
+    const values = [...periodMap.values()]
+    avgPerPeriod = values.reduce((a, b) => a + b, 0) / values.length
+  } else if (goal.goalType === 'investment_linked' && investmentTransactions) {
+    const relevant = investmentTransactions.filter((tx) => {
+      if (tx.type !== 'contribution') return false
+      if (goal.linkedInvestmentIds.length > 0) return goal.linkedInvestmentIds.includes(tx.investmentId)
+      if (goal.linkedWorkspaceIds.length > 0) return goal.linkedWorkspaceIds.includes(tx.workspaceId)
+      return true
+    })
+    const monthMap = new Map<string, number>()
+    for (const tx of relevant) {
+      monthMap.set(tx.monthKey, (monthMap.get(tx.monthKey) || 0) + tx.amount)
+    }
+    if (monthMap.size < 2) return noData
+    const values = [...monthMap.values()]
+    avgPerPeriod = values.reduce((a, b) => a + b, 0) / values.length
+  } else {
+    return noData
+  }
+
+  if (avgPerPeriod <= 0) return noData
+
+  const periodsRemaining = Math.ceil(goal.targetAmount / avgPerPeriod)
+
+  // Calculate estimated date by adding periods from now
+  const now = new Date()
+  let months = 0
+  switch (goal.periodicity) {
+    case 'monthly': months = periodsRemaining; break
+    case 'quarterly': months = periodsRemaining * 3; break
+    case 'semiannual': months = periodsRemaining * 6; break
+    case 'yearly': months = periodsRemaining * 12; break
+    default: months = periodsRemaining; break
+  }
+
+  const estimated = new Date(now.getFullYear(), now.getMonth() + months, 1)
+  const estimatedDate = `${estimated.getFullYear()}-${String(estimated.getMonth() + 1).padStart(2, '0')}`
+
+  return { estimatedDate, avgPerPeriod, periodsRemaining, hasEnoughData: true }
+}
+
 export function reconstructHistoricalBalance(
   investmentId: string,
   transactions: InvestmentTransaction[],

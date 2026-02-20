@@ -16,6 +16,10 @@ import {
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useUIStore } from '@/stores/useUIStore'
+import { useBillsStore } from '@/stores/useBillsStore'
+import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
+import { useGoalsStore } from '@/stores/useGoalsStore'
+import { useIncomeStore } from '@/stores/useIncomeStore'
 import type { AppSection } from '@/types/models'
 
 interface SearchItem {
@@ -23,33 +27,36 @@ interface SearchItem {
   label: string
   description: string
   icon: typeof Search
+  group: string
   section?: AppSection
   action?: () => void
 }
 
-function getSearchItems(
+function getStaticItems(
   setActiveSection: (s: AppSection) => void,
   openModal: (m: string) => void
 ): SearchItem[] {
   return [
-    { id: 'nav-dashboard', label: 'Painel', description: 'Visão geral da sua situação financeira', icon: LayoutDashboard, section: 'dashboard' },
-    { id: 'nav-bills', label: 'Contas Mensais', description: 'Gerencie suas contas e despesas do mês', icon: Receipt, section: 'bills' },
-    { id: 'nav-investments', label: 'Investimentos', description: 'Acompanhe seus investimentos e rendimentos', icon: TrendingUp, section: 'investments' },
-    { id: 'nav-fgts', label: 'FGTS', description: 'Registre e acompanhe seu saldo de FGTS', icon: Landmark, section: 'fgts' },
-    { id: 'nav-goals', label: 'Metas', description: 'Defina e monitore suas metas financeiras', icon: Target, section: 'goals' },
-    { id: 'nav-networth', label: 'Patrimônio', description: 'Acompanhe a evolução do seu patrimônio', icon: Wallet, section: 'networth' },
-    { id: 'nav-settings', label: 'Configurações', description: 'Personalize o aplicativo', icon: Settings, section: 'settings' },
-    { id: 'nav-income', label: 'Receitas', description: 'Registre suas fontes de renda e receitas', icon: DollarSign, section: 'income' },
-    { id: 'nav-help', label: 'Como Usar', description: 'Guia completo de todas as funcionalidades', icon: HelpCircle, section: 'help' },
-    { id: 'action-add-income', label: 'Nova Receita', description: 'Registrar uma nova receita', icon: Plus, action: () => setActiveSection('income') },
-    { id: 'action-add-bill', label: 'Adicionar Conta', description: 'Criar uma nova conta mensal', icon: Plus, action: () => { setActiveSection('bills'); setTimeout(() => openModal('billForm'), 100) } },
-    { id: 'action-add-investment', label: 'Novo Investimento', description: 'Registrar um novo investimento', icon: Plus, action: () => { setActiveSection('investments'); setTimeout(() => openModal('investmentForm'), 100) } },
-    { id: 'action-add-goal', label: 'Criar Meta', description: 'Definir uma nova meta financeira', icon: Plus, action: () => { setActiveSection('goals'); setTimeout(() => openModal('goalForm'), 100) } },
-    { id: 'action-add-fgts', label: 'Registrar FGTS', description: 'Adicionar registro de FGTS', icon: Plus, action: () => { setActiveSection('fgts'); setTimeout(() => openModal('fgtsForm'), 100) } },
-    { id: 'action-export', label: 'Exportar Dados', description: 'Exportar seus dados para backup', icon: Download, action: () => setActiveSection('settings') },
-    { id: 'action-import', label: 'Importar Dados', description: 'Importar dados de um arquivo', icon: Upload, action: () => setActiveSection('settings') }
+    { id: 'nav-dashboard', label: 'Painel', description: 'Visão geral da sua situação financeira', icon: LayoutDashboard, group: 'Navegação', section: 'dashboard' },
+    { id: 'nav-bills', label: 'Contas Mensais', description: 'Gerencie suas contas e despesas do mês', icon: Receipt, group: 'Navegação', section: 'bills' },
+    { id: 'nav-investments', label: 'Investimentos', description: 'Acompanhe seus investimentos e rendimentos', icon: TrendingUp, group: 'Navegação', section: 'investments' },
+    { id: 'nav-fgts', label: 'FGTS', description: 'Registre e acompanhe seu saldo de FGTS', icon: Landmark, group: 'Navegação', section: 'fgts' },
+    { id: 'nav-goals', label: 'Metas', description: 'Defina e monitore suas metas financeiras', icon: Target, group: 'Navegação', section: 'goals' },
+    { id: 'nav-networth', label: 'Patrimônio', description: 'Acompanhe a evolução do seu patrimônio', icon: Wallet, group: 'Navegação', section: 'networth' },
+    { id: 'nav-settings', label: 'Configurações', description: 'Personalize o aplicativo', icon: Settings, group: 'Navegação', section: 'settings' },
+    { id: 'nav-income', label: 'Receitas', description: 'Registre suas fontes de renda e receitas', icon: DollarSign, group: 'Navegação', section: 'income' },
+    { id: 'nav-help', label: 'Como Usar', description: 'Guia completo de todas as funcionalidades', icon: HelpCircle, group: 'Navegação', section: 'help' },
+    { id: 'action-add-income', label: 'Nova Receita', description: 'Registrar uma nova receita', icon: Plus, group: 'Ações', action: () => setActiveSection('income') },
+    { id: 'action-add-bill', label: 'Adicionar Conta', description: 'Criar uma nova conta mensal', icon: Plus, group: 'Ações', action: () => { setActiveSection('bills'); setTimeout(() => openModal('billForm'), 100) } },
+    { id: 'action-add-investment', label: 'Novo Investimento', description: 'Registrar um novo investimento', icon: Plus, group: 'Ações', action: () => { setActiveSection('investments'); setTimeout(() => openModal('investmentForm'), 100) } },
+    { id: 'action-add-goal', label: 'Criar Meta', description: 'Definir uma nova meta financeira', icon: Plus, group: 'Ações', action: () => { setActiveSection('goals'); setTimeout(() => openModal('goalForm'), 100) } },
+    { id: 'action-add-fgts', label: 'Registrar FGTS', description: 'Adicionar registro de FGTS', icon: Plus, group: 'Ações', action: () => { setActiveSection('fgts'); setTimeout(() => openModal('fgtsForm'), 100) } },
+    { id: 'action-export', label: 'Exportar Dados', description: 'Exportar seus dados para backup', icon: Download, group: 'Ações', action: () => setActiveSection('settings') },
+    { id: 'action-import', label: 'Importar Dados', description: 'Importar dados de um arquivo', icon: Upload, group: 'Ações', action: () => setActiveSection('settings') }
   ]
 }
+
+const MAX_PER_GROUP = 5
 
 export function SearchBar(): React.JSX.Element {
   const [query, setQuery] = useState('')
@@ -60,17 +67,93 @@ export function SearchBar(): React.JSX.Element {
   const setActiveSection = useUIStore((s) => s.setActiveSection)
   const openModal = useUIStore((s) => s.openModal)
 
-  const items = useMemo(() => getSearchItems(setActiveSection, openModal), [setActiveSection, openModal])
+  // Data stores
+  const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
+  const investments = useInvestmentsStore((s) => s.investments)
+  const goals = useGoalsStore((s) => s.goals)
+  const incomeEntries = useIncomeStore((s) => s.entries)
+
+  const staticItems = useMemo(() => getStaticItems(setActiveSection, openModal), [setActiveSection, openModal])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
-    return items.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q)
+
+    // Filter static items
+    const staticFiltered = staticItems.filter(
+      (item) => item.label.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
     )
-  }, [query, items])
+
+    // Dynamic: Bills (deduplicate by name)
+    const billNames = new Set<string>()
+    const billItems: SearchItem[] = []
+    for (const record of monthlyRecords) {
+      for (const bill of record.bills) {
+        if (bill.name.toLowerCase().includes(q) && !billNames.has(bill.name)) {
+          billNames.add(bill.name)
+          billItems.push({
+            id: `bill-${bill.name}`,
+            label: bill.name,
+            description: 'Conta mensal',
+            icon: Receipt,
+            group: 'Contas',
+            action: () => setActiveSection('bills')
+          })
+        }
+      }
+    }
+
+    // Dynamic: Investments
+    const investItems: SearchItem[] = investments
+      .filter((i) => i.name.toLowerCase().includes(q))
+      .map((i) => ({
+        id: `invest-${i.id}`,
+        label: i.name,
+        description: i.isActive ? 'Investimento ativo' : 'Investimento inativo',
+        icon: TrendingUp,
+        group: 'Investimentos',
+        action: () => setActiveSection('investments')
+      }))
+
+    // Dynamic: Goals
+    const goalItems: SearchItem[] = goals
+      .filter((g) => g.name.toLowerCase().includes(q))
+      .map((g) => ({
+        id: `goal-${g.id}`,
+        label: g.name,
+        description: g.isActive ? 'Meta ativa' : 'Meta pausada',
+        icon: Target,
+        group: 'Metas',
+        action: () => setActiveSection('goals')
+      }))
+
+    // Dynamic: Income (deduplicate by name)
+    const incomeNames = new Set<string>()
+    const incomeItems: SearchItem[] = []
+    for (const entry of incomeEntries) {
+      if (entry.name.toLowerCase().includes(q) && !incomeNames.has(entry.name)) {
+        incomeNames.add(entry.name)
+        incomeItems.push({
+          id: `income-${entry.name}`,
+          label: entry.name,
+          description: 'Receita',
+          icon: DollarSign,
+          group: 'Receitas',
+          action: () => setActiveSection('income')
+        })
+      }
+    }
+
+    // Combine with limits per group
+    return [
+      ...staticFiltered.filter((i) => i.group === 'Navegação').slice(0, MAX_PER_GROUP),
+      ...staticFiltered.filter((i) => i.group === 'Ações').slice(0, MAX_PER_GROUP),
+      ...billItems.slice(0, MAX_PER_GROUP),
+      ...investItems.slice(0, MAX_PER_GROUP),
+      ...goalItems.slice(0, MAX_PER_GROUP),
+      ...incomeItems.slice(0, MAX_PER_GROUP)
+    ]
+  }, [query, staticItems, monthlyRecords, investments, goals, incomeEntries, setActiveSection])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -132,6 +215,20 @@ export function SearchBar(): React.JSX.Element {
     }
   }
 
+  // Group items for rendering
+  const groups = useMemo(() => {
+    const map = new Map<string, SearchItem[]>()
+    for (const item of filtered) {
+      const list = map.get(item.group) || []
+      list.push(item)
+      map.set(item.group, list)
+    }
+    return Array.from(map.entries())
+  }, [filtered])
+
+  // Flat index tracking for keyboard nav
+  let flatIndex = -1
+
   return (
     <div ref={containerRef} className="relative mx-auto w-full max-w-md">
       <div className="relative">
@@ -149,27 +246,37 @@ export function SearchBar(): React.JSX.Element {
       </div>
 
       {isOpen && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-          {filtered.map((item, index) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                onClick={() => executeItem(item)}
-                onMouseEnter={() => setSelectedIndex(index)}
-                className={clsx(
-                  'flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors',
-                  index === selectedIndex ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
-                )}
-              >
-                <Icon size={18} className="shrink-0 text-gray-400" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">{item.label}</div>
-                  <div className="truncate text-xs text-gray-400">{item.description}</div>
-                </div>
-              </button>
-            )
-          })}
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-96 overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+          {groups.map(([groupName, groupItems], groupIdx) => (
+            <div key={groupName}>
+              {groupIdx > 0 && <div className="mx-3 my-1 border-t border-gray-100" />}
+              <div className="px-3 pb-1 pt-2">
+                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{groupName}</span>
+              </div>
+              {groupItems.map((item) => {
+                flatIndex++
+                const currentIdx = flatIndex
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => executeItem(item)}
+                    onMouseEnter={() => setSelectedIndex(currentIdx)}
+                    className={clsx(
+                      'flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors',
+                      currentIdx === selectedIndex ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    <Icon size={16} className="shrink-0 text-gray-400" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{item.label}</div>
+                      <div className="truncate text-xs text-gray-400">{item.description}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>

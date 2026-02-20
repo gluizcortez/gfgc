@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Pause, Play, Link, BarChart3 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Pause, Play, Link, BarChart3, CalendarClock } from 'lucide-react'
 import { clsx } from 'clsx'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { GoalProgressBar } from './GoalProgressBar'
 import { GoalContributionHistory } from './GoalContributionHistory'
-import { calculateOverallGoalProgress, calculatePeriodGoalProgress, normalizePeriodKey, type GoalProgress } from '@/lib/calculations'
-import { formatCurrency, getCurrentMonthKey } from '@/lib/formatters'
+import { calculateOverallGoalProgress, calculatePeriodGoalProgress, calculateGoalProjection, normalizePeriodKey, type GoalProgress } from '@/lib/calculations'
+import { formatCurrency, formatMonthYear, getCurrentMonthKey } from '@/lib/formatters'
 import { PERIODICITY_LABELS } from '@/lib/constants'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import type { Goal } from '@/types/models'
@@ -75,6 +75,27 @@ export function GoalCard({
     const currentPeriod = normalizePeriodKey(getCurrentMonthKey(), goal.periodicity)
     return calculatePeriodGoalProgress(goal, currentPeriod)
   }, [goal, periodFilter])
+
+  const projection = useMemo(() => {
+    return calculateGoalProjection(goal, transactions)
+  }, [goal, transactions])
+
+  const projectionBadge = useMemo(() => {
+    if (!projection.hasEnoughData) {
+      return { text: 'Dados insuficientes para projeção', color: 'bg-gray-100 text-gray-500' }
+    }
+    const isLate = goal.endDate && projection.estimatedDate && projection.estimatedDate > goal.endDate
+    if (isLate) {
+      return {
+        text: `Projeção: ${formatMonthYear(projection.estimatedDate!)} (após prazo)`,
+        color: 'bg-amber-50 text-amber-700'
+      }
+    }
+    return {
+      text: `Projeção: ${formatMonthYear(projection.estimatedDate!)}`,
+      color: 'bg-green-50 text-green-700'
+    }
+  }, [projection, goal.endDate])
 
   return (
     <div
@@ -167,6 +188,19 @@ export function GoalCard({
             </>
           )
         })()}
+      </div>
+
+      {/* Projection badge */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className={clsx('flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium', projectionBadge.color)}>
+          <CalendarClock size={12} />
+          {projectionBadge.text}
+        </span>
+        {projection.hasEnoughData && (
+          <span className="text-xs text-gray-400">
+            Média: {formatCurrency(projection.avgPerPeriod)}/período
+          </span>
+        )}
       </div>
 
       {investmentCurrentProgress && (

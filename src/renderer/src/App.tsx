@@ -2,7 +2,10 @@ import { useEffect } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { useUIStore } from '@/stores/useUIStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useBillsStore } from '@/stores/useBillsStore'
 import { usePersistence, loadAndHydrate } from '@/hooks/usePersistence'
+import { getEffectiveStatus } from '@/lib/billStatus'
+import { getCurrentMonthKey } from '@/lib/formatters'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { SearchBar } from '@/components/layout/SearchBar'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -52,6 +55,26 @@ function App(): React.JSX.Element {
           .catch(() => {
             // Silently ignore update check errors on startup
           })
+
+        // Bill reminders on startup
+        const currentMonth = getCurrentMonthKey()
+        const now = new Date()
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const records = useBillsStore.getState().monthlyRecords.filter((r) => r.monthKey === currentMonth)
+        const allBills = records.flatMap((r) => r.bills)
+        const overdueCount = allBills.filter((b) => getEffectiveStatus(b) === 'overdue').length
+        const todayCount = allBills.filter((b) => getEffectiveStatus(b) !== 'paid' && b.dueDate === todayStr).length
+
+        const parts: string[] = []
+        if (overdueCount > 0) parts.push(`${overdueCount} conta(s) atrasada(s)`)
+        if (todayCount > 0) parts.push(`${todayCount} conta(s) vencendo hoje`)
+        if (parts.length > 0) {
+          addNotification(
+            parts.join(' e ') + '. Clique para ver.',
+            'info',
+            () => setActiveSection('bills')
+          )
+        }
       })
       .catch((err) => {
         console.error('Failed to load data:', err)
