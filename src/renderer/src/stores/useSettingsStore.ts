@@ -78,10 +78,10 @@ export const useSettingsStore = create<SettingsState>()(
 
     deleteCategory: (id) => {
       const cats = useSettingsStore.getState().settings.categories
+      if (cats.length <= 1) return // prevent deleting last category
       const fallback = cats.find((c) => c.id !== id && (c.name === 'Outros' || c.isDefault)) || cats.find((c) => c.id !== id)
-      const fallbackId = fallback?.id || id
-      if (fallbackId !== id) {
-        useBillsStore.getState().reassignCategory(id, fallbackId)
+      if (fallback) {
+        useBillsStore.getState().reassignCategory(id, fallback.id)
       }
       set((state) => {
         state.settings.categories = state.settings.categories.filter((c) => c.id !== id)

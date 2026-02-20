@@ -4,6 +4,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import { useIncomeStore } from '@/stores/useIncomeStore'
+import { useFGTSStore } from '@/stores/useFGTSStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { WORKSPACE_COLORS } from '@/lib/constants'
@@ -17,6 +18,7 @@ export function WorkspaceManager(): React.JSX.Element {
   const deleteBillsData = useBillsStore((s) => s.deleteWorkspaceData)
   const deleteInvestmentsData = useInvestmentsStore((s) => s.deleteWorkspaceData)
   const deleteIncomeData = useIncomeStore((s) => s.deleteWorkspaceData)
+  const deleteFGTSData = useFGTSStore((s) => s.deleteWorkspaceData)
   const addNotification = useUIStore((s) => s.addNotification)
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -52,6 +54,8 @@ export function WorkspaceManager(): React.JSX.Element {
       deleteInvestmentsData(deleteTarget.id)
     } else if (deleteTarget.type === 'income') {
       deleteIncomeData(deleteTarget.id)
+    } else if (deleteTarget.type === 'fgts') {
+      deleteFGTSData(deleteTarget.id)
     }
     addNotification('Aba excluída', 'success')
     setDeleteTarget(null)
