@@ -41,8 +41,8 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
   }
 
   const release = await response.json()
-  const releaseName: string = release.name || release.tag_name || ''
-  const latestVersion = releaseName.replace(/^v/i, '')
+  const tagName: string = release.tag_name || release.name || ''
+  const latestVersion = tagName.replace(/^v/i, '')
 
   const assets: UpdateAsset[] = (release.assets || []).map((a: { name: string; browser_download_url: string; size: number }) => ({
     name: a.name,
