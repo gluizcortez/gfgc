@@ -67,7 +67,7 @@ export function QuickCalendar(): React.JSX.Element {
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-0 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 h-[70vh] w-[60vw] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl bg-white p-0 shadow-xl flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <Dialog.Title className="text-base font-semibold text-gray-900">
@@ -119,8 +119,8 @@ export function QuickCalendar(): React.JSX.Element {
           </div>
 
           {/* Calendar */}
-          <div className="px-5 pb-5">
-            <div className="rounded-xl border border-gray-200">
+          <div className="flex-1 flex flex-col px-5 pb-5 min-h-0">
+            <div className="rounded-xl border border-gray-200 flex-1 flex flex-col">
               <div className="grid grid-cols-7 border-b border-gray-100">
                 {dayNames.map((name) => (
                   <div key={name} className="px-1 py-1.5 text-center text-[10px] font-medium text-gray-400">
@@ -128,10 +128,10 @@ export function QuickCalendar(): React.JSX.Element {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7">
+              <div className="grid grid-cols-7 flex-1">
                 {cells.map((day, index) => {
                   if (day === null) {
-                    return <div key={`empty-${index}`} className="min-h-[64px] border-b border-r border-gray-50" />
+                    return <div key={`empty-${index}`} className="min-h-[48px] border-b border-r border-gray-50" />
                   }
 
                   const dayBills = calendarData.billsByDay.get(day) || []
@@ -144,7 +144,7 @@ export function QuickCalendar(): React.JSX.Element {
                     <div
                       key={day}
                       className={clsx(
-                        'min-h-[64px] border-b border-r border-gray-50 p-0.5',
+                        'min-h-[48px] border-b border-r border-gray-50 p-1',
                         isToday && 'bg-primary-50/50'
                       )}
                     >
