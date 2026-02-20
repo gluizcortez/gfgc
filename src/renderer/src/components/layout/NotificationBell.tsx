@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Bell, AlertTriangle, Clock, CheckCircle } from 'lucide-react'
+import { Bell, AlertTriangle, Clock, CheckCircle, Download } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
@@ -26,6 +26,7 @@ export function NotificationBell(): React.JSX.Element {
   const setActiveSection = useUIStore((s) => s.setActiveSection)
   const setActiveBillsWorkspace = useUIStore((s) => s.setActiveBillsWorkspace)
   const setActiveBillsMonth = useUIStore((s) => s.setActiveBillsMonth)
+  const pendingUpdate = useUIStore((s) => s.pendingUpdate)
 
   const currentMonth = getCurrentMonthKey()
 
@@ -105,7 +106,7 @@ export function NotificationBell(): React.JSX.Element {
   }
 
   const overdueCount = alerts.filter((a) => a.type === 'overdue').length
-  const totalCount = alerts.length
+  const totalCount = alerts.length + (pendingUpdate ? 1 : 0)
 
   const getAlertIcon = (type: BillAlert['type']) => {
     switch (type) {
@@ -167,7 +168,26 @@ export function NotificationBell(): React.JSX.Element {
           </div>
 
           <div className="max-h-80 overflow-auto">
-            {alerts.length === 0 ? (
+            {pendingUpdate && (
+              <button
+                onClick={() => {
+                  setActiveSection('settings')
+                  setIsOpen(false)
+                }}
+                className="flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-blue-50"
+              >
+                <div className="mt-0.5 rounded-lg bg-blue-50 p-1.5 text-blue-600">
+                  <Download size={14} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900">Atualização disponível</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Nova versão <span className="font-medium">v{pendingUpdate.version}</span> — clique para atualizar
+                  </p>
+                </div>
+              </button>
+            )}
+            {alerts.length === 0 && !pendingUpdate ? (
               <div className="flex flex-col items-center gap-2 py-8">
                 <CheckCircle size={24} className="text-green-400" />
                 <p className="text-sm text-gray-400">Tudo em dia!</p>

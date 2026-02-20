@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
+import { useIncomeStore } from '@/stores/useIncomeStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { WORKSPACE_COLORS } from '@/lib/constants'
@@ -15,6 +16,7 @@ export function WorkspaceManager(): React.JSX.Element {
   const deleteWorkspaceSettings = useSettingsStore((s) => s.deleteWorkspace)
   const deleteBillsData = useBillsStore((s) => s.deleteWorkspaceData)
   const deleteInvestmentsData = useInvestmentsStore((s) => s.deleteWorkspaceData)
+  const deleteIncomeData = useIncomeStore((s) => s.deleteWorkspaceData)
   const addNotification = useUIStore((s) => s.addNotification)
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -24,7 +26,7 @@ export function WorkspaceManager(): React.JSX.Element {
 
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newType, setNewType] = useState<'bills' | 'investments'>('bills')
+  const [newType, setNewType] = useState<'bills' | 'investments' | 'income'>('bills')
 
   const handleAdd = (): void => {
     if (!newName.trim()) return
@@ -46,8 +48,10 @@ export function WorkspaceManager(): React.JSX.Element {
     deleteWorkspaceSettings(deleteTarget.id)
     if (deleteTarget.type === 'bills') {
       deleteBillsData(deleteTarget.id)
-    } else {
+    } else if (deleteTarget.type === 'investments') {
       deleteInvestmentsData(deleteTarget.id)
+    } else if (deleteTarget.type === 'income') {
+      deleteIncomeData(deleteTarget.id)
     }
     addNotification('Aba excluída', 'success')
     setDeleteTarget(null)
@@ -55,6 +59,7 @@ export function WorkspaceManager(): React.JSX.Element {
 
   const billWs = workspaces.filter((w) => w.type === 'bills').sort((a, b) => a.sortOrder - b.sortOrder)
   const investWs = workspaces.filter((w) => w.type === 'investments').sort((a, b) => a.sortOrder - b.sortOrder)
+  const incomeWs = workspaces.filter((w) => w.type === 'income').sort((a, b) => a.sortOrder - b.sortOrder)
 
   const renderWorkspaceGroup = (title: string, items: Workspace[]): React.JSX.Element => (
     <div className="mb-6">
@@ -150,11 +155,12 @@ export function WorkspaceManager(): React.JSX.Element {
           />
           <select
             value={newType}
-            onChange={(e) => setNewType(e.target.value as 'bills' | 'investments')}
+            onChange={(e) => setNewType(e.target.value as 'bills' | 'investments' | 'income')}
             className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-primary-500 focus:outline-none"
           >
             <option value="bills">Contas Mensais</option>
             <option value="investments">Investimentos</option>
+            <option value="income">Receitas</option>
           </select>
           <button onClick={handleAdd} className="rounded p-1.5 text-green-600 hover:bg-green-50">
             <Check size={18} />
@@ -167,6 +173,7 @@ export function WorkspaceManager(): React.JSX.Element {
 
       {renderWorkspaceGroup('Contas Mensais', billWs)}
       {renderWorkspaceGroup('Investimentos', investWs)}
+      {renderWorkspaceGroup('Receitas', incomeWs)}
 
       <ConfirmDialog
         open={!!deleteTarget}

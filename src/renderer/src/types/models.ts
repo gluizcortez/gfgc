@@ -6,7 +6,7 @@ export type MonthKey = string // "2026-02"
 export interface Workspace {
   id: EntityId
   name: string
-  type: 'bills' | 'investments' | 'fgts'
+  type: 'bills' | 'investments' | 'fgts' | 'income'
   color: string
   icon?: string
   createdAt: string
@@ -154,6 +154,7 @@ export const INCOME_CATEGORY_LABELS: Record<IncomeCategory, string> = {
 
 export interface IncomeEntry {
   id: EntityId
+  workspaceId: EntityId
   monthKey: MonthKey
   name: string
   amount: number // centavos

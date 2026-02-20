@@ -46,14 +46,17 @@ export function DashboardPage(): React.JSX.Element {
 
   const billWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'bills'), [workspaces])
   const investWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'investments'), [workspaces])
+  const incomeWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'income'), [workspaces])
 
   const [selectedBillWs, setSelectedBillWs] = useState<string[]>([])
   const [selectedInvestWs, setSelectedInvestWs] = useState<string[]>([])
+  const [selectedIncomeWs, setSelectedIncomeWs] = useState<string[]>([])
   const [selectedGoalIds, setSelectedGoalIds] = useState<string[]>([])
 
   // Default: select all
   const activeBillWs = selectedBillWs.length > 0 ? selectedBillWs : billWorkspaces.map((w) => w.id)
   const activeInvestWs = selectedInvestWs.length > 0 ? selectedInvestWs : investWorkspaces.map((w) => w.id)
+  const activeIncomeWs = selectedIncomeWs.length > 0 ? selectedIncomeWs : incomeWorkspaces.map((w) => w.id)
 
   const monthBills = useMemo(() => {
     return billRecords
@@ -77,8 +80,8 @@ export function DashboardPage(): React.JSX.Element {
   )
 
   const monthIncome = useMemo(
-    () => incomeEntries.filter((e) => e.monthKey === month),
-    [incomeEntries, month]
+    () => incomeEntries.filter((e) => e.monthKey === month && activeIncomeWs.includes(e.workspaceId)),
+    [incomeEntries, month, activeIncomeWs]
   )
 
   const activeGoals = useMemo(() => goals.filter((g) => g.isActive), [goals])
@@ -241,6 +244,30 @@ export function DashboardPage(): React.JSX.Element {
                         className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
                           isActive
                             ? 'border-primary-200 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                        {ws.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {incomeWorkspaces.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Receitas</p>
+                <div className="flex gap-1.5">
+                  {incomeWorkspaces.map((ws) => {
+                    const isActive = activeIncomeWs.includes(ws.id)
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => toggleFilter(ws.id, selectedIncomeWs, setSelectedIncomeWs, incomeWorkspaces.map((w) => w.id))}
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'border-green-200 bg-green-50 text-green-700'
                             : 'border-gray-200 text-gray-400 hover:border-gray-300'
                         }`}
                       >

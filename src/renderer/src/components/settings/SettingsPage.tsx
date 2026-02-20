@@ -48,9 +48,20 @@ export function SettingsPage(): React.JSX.Element {
   const [updateAssets, setUpdateAssets] = useState<UpdateAsset[]>([])
   const [updateError, setUpdateError] = useState('')
 
+  const pendingUpdate = useUIStore((s) => s.pendingUpdate)
+
   useEffect(() => {
     window.api.getAppVersion().then((v) => setAppVersion(v))
   }, [])
+
+  // Pre-populate from pendingUpdate if available
+  useEffect(() => {
+    if (pendingUpdate && updateStatus === 'idle') {
+      setLatestVersion(pendingUpdate.version)
+      setUpdateAssets(pendingUpdate.assets)
+      setUpdateStatus('update_available')
+    }
+  }, [pendingUpdate])
 
   const handleCheckForUpdate = async (): Promise<void> => {
     setUpdateStatus('checking')

@@ -27,6 +27,8 @@ function App(): React.JSX.Element {
   usePersistence()
 
   const addNotification = useUIStore((s) => s.addNotification)
+  const setActiveSection = useUIStore((s) => s.setActiveSection)
+  const setPendingUpdate = useUIStore((s) => s.setPendingUpdate)
 
   useEffect(() => {
     loadAndHydrate()
@@ -36,9 +38,14 @@ function App(): React.JSX.Element {
         window.api.checkForUpdate()
           .then((result) => {
             if (result.hasUpdate) {
+              setPendingUpdate({
+                version: result.latestVersion,
+                assets: result.assets || []
+              })
               addNotification(
-                `Nova versão disponível: v${result.latestVersion}. Acesse Configurações para atualizar.`,
-                'info'
+                `Nova versão disponível: v${result.latestVersion}. Clique para atualizar.`,
+                'info',
+                () => setActiveSection('settings')
               )
             }
           })

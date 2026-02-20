@@ -5,11 +5,12 @@ import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { formatCurrency } from '@/lib/formatters'
 import { useIncomeStore } from '@/stores/useIncomeStore'
 import { INCOME_CATEGORY_LABELS } from '@/types/models'
-import type { IncomeEntry, IncomeCategory } from '@/types/models'
+import type { IncomeEntry, IncomeCategory, EntityId } from '@/types/models'
 
 interface RecurringIncomeModalProps {
   open: boolean
   onClose: () => void
+  workspaceId: EntityId
 }
 
 interface RecurringGroup {
@@ -20,15 +21,17 @@ interface RecurringGroup {
   isActive: boolean
 }
 
-export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProps): React.JSX.Element {
+export function RecurringIncomeModal({ open, onClose, workspaceId }: RecurringIncomeModalProps): React.JSX.Element {
   const entries = useIncomeStore((s) => s.entries)
   const removeRecurrence = useIncomeStore((s) => s.removeRecurrence)
   const restoreRecurrence = useIncomeStore((s) => s.restoreRecurrence)
 
   const recurringGroups = useMemo((): RecurringGroup[] => {
+    const wsEntries = entries.filter((e) => e.workspaceId === workspaceId)
+
     // Find the latest entry for each name+category combination
     const latestMap = new Map<string, IncomeEntry>()
-    for (const entry of entries) {
+    for (const entry of wsEntries) {
       const key = `${entry.name}::${entry.category}`
       const existing = latestMap.get(key)
       if (!existing || entry.monthKey > existing.monthKey) {
@@ -36,27 +39,15 @@ export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProp
       }
     }
 
-    // Collect all keys that were ever recurring
-    const everRecurringKeys = new Set<string>()
-    for (const entry of entries) {
-      if (entry.isRecurring) {
-        everRecurringKeys.add(`${entry.name}::${entry.category}`)
-      }
-    }
-
-    // Also include keys where ALL entries are not recurring (removed ones)
-    // Check if any entry for this key was ever recurring by looking at all entries
+    // A group should show if it has or had recurring entries
     const allKeys = new Set<string>()
-    for (const entry of entries) {
+    for (const entry of wsEntries) {
       allKeys.add(`${entry.name}::${entry.category}`)
     }
 
-    // A group should show if it has or had recurring entries
-    // We detect "had recurring" by checking if multiple entries exist for same name+category
-    // (auto-generated entries are created with isRecurring: true, if all are false now, it was removed)
     const groupKeys = new Set<string>()
     for (const key of allKeys) {
-      const keyEntries = entries.filter((e) => `${e.name}::${e.category}` === key)
+      const keyEntries = wsEntries.filter((e) => `${e.name}::${e.category}` === key)
       const hasAnyRecurring = keyEntries.some((e) => e.isRecurring)
       const hasMultiple = keyEntries.length > 1
       if (hasAnyRecurring || hasMultiple) {
@@ -67,7 +58,7 @@ export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProp
     return Array.from(groupKeys)
       .map((key) => {
         const latest = latestMap.get(key)!
-        const hasAnyActive = entries.some(
+        const hasAnyActive = wsEntries.some(
           (e) => e.name === latest.name && e.category === latest.category && e.isRecurring
         )
         return {
@@ -79,13 +70,13 @@ export function RecurringIncomeModal({ open, onClose }: RecurringIncomeModalProp
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [entries])
+  }, [entries, workspaceId])
 
   const handleToggle = (group: RecurringGroup): void => {
     if (group.isActive) {
-      removeRecurrence(group.name, group.category)
+      removeRecurrence(group.name, group.category, workspaceId)
     } else {
-      restoreRecurrence(group.name, group.category)
+      restoreRecurrence(group.name, group.category, workspaceId)
     }
   }
 

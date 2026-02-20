@@ -9,9 +9,10 @@ interface IncomeState {
   addEntry: (entry: Omit<IncomeEntry, 'id'>) => EntityId
   updateEntry: (id: EntityId, updates: Partial<IncomeEntry>) => void
   deleteEntry: (id: EntityId) => void
-  generateRecurringForMonth: (monthKey: MonthKey) => number
-  removeRecurrence: (name: string, category: string) => void
-  restoreRecurrence: (name: string, category: string) => void
+  generateRecurringForMonth: (monthKey: MonthKey, workspaceId: EntityId) => number
+  removeRecurrence: (name: string, category: string, workspaceId: EntityId) => void
+  restoreRecurrence: (name: string, category: string, workspaceId: EntityId) => void
+  deleteWorkspaceData: (workspaceId: EntityId) => void
 
   hydrate: (entries: IncomeEntry[]) => void
 }
@@ -39,10 +40,11 @@ export const useIncomeStore = create<IncomeState>()(
         state.entries = state.entries.filter((e) => e.id !== id)
       }),
 
-    generateRecurringForMonth: (monthKey) => {
+    generateRecurringForMonth: (monthKey, workspaceId) => {
       const { entries } = get()
-      const existingInMonth = entries.filter((e) => e.monthKey === monthKey)
-      const recurringTemplates = entries.filter((e) => e.isRecurring && e.monthKey < monthKey)
+      const wsEntries = entries.filter((e) => e.workspaceId === workspaceId)
+      const existingInMonth = wsEntries.filter((e) => e.monthKey === monthKey)
+      const recurringTemplates = wsEntries.filter((e) => e.isRecurring && e.monthKey < monthKey)
 
       // Deduplicate: keep only the latest entry per recurring name+category
       const templateMap = new Map<string, IncomeEntry>()
@@ -73,6 +75,7 @@ export const useIncomeStore = create<IncomeState>()(
 
           state.entries.push({
             id: nanoid(),
+            workspaceId,
             monthKey,
             name: template.name,
             amount: template.amount,
@@ -88,22 +91,27 @@ export const useIncomeStore = create<IncomeState>()(
       return count
     },
 
-    removeRecurrence: (name, category) =>
+    removeRecurrence: (name, category, workspaceId) =>
       set((state) => {
         for (const entry of state.entries) {
-          if (entry.name === name && entry.category === category) {
+          if (entry.name === name && entry.category === category && entry.workspaceId === workspaceId) {
             entry.isRecurring = false
           }
         }
       }),
 
-    restoreRecurrence: (name, category) =>
+    restoreRecurrence: (name, category, workspaceId) =>
       set((state) => {
         for (const entry of state.entries) {
-          if (entry.name === name && entry.category === category) {
+          if (entry.name === name && entry.category === category && entry.workspaceId === workspaceId) {
             entry.isRecurring = true
           }
         }
+      }),
+
+    deleteWorkspaceData: (workspaceId) =>
+      set((state) => {
+        state.entries = state.entries.filter((e) => e.workspaceId !== workspaceId)
       }),
 
     hydrate: (entries) =>

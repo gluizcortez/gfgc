@@ -27,15 +27,22 @@ export function Notifications(): React.JSX.Element | null {
         return (
           <div
             key={n.id}
+            onClick={() => {
+              if (n.action) {
+                n.action()
+                removeNotification(n.id)
+              }
+            }}
             className={clsx(
               'flex items-center gap-2 rounded-lg border px-4 py-3 shadow-lg',
-              STYLES[n.type]
+              STYLES[n.type],
+              n.action && 'cursor-pointer hover:brightness-95'
             )}
           >
             <Icon size={18} />
             <span className="text-sm font-medium">{n.message}</span>
             <button
-              onClick={() => removeNotification(n.id)}
+              onClick={(e) => { e.stopPropagation(); removeNotification(n.id) }}
               className="ml-2 rounded p-0.5 opacity-60 hover:opacity-100"
             >
               <X size={14} />
