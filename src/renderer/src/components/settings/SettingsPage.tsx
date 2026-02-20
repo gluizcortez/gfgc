@@ -40,6 +40,8 @@ export function SettingsPage(): React.JSX.Element {
   const [resetInput, setResetInput] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState<AppData | null>(null)
 
   // Update state
   const [appVersion, setAppVersion] = useState('')
@@ -115,20 +117,28 @@ export function SettingsPage(): React.JSX.Element {
     setIsImporting(true)
     const result = await window.api.importData()
     if (result.success && result.data) {
-      const data = result.data as AppData
-      useSettingsStore.getState().hydrate(data.settings, data.workspaces)
-      useBillsStore.getState().hydrate(data.bills || [], data.monthlyBillRecords || [])
-      useInvestmentsStore.getState().hydrate(data.investments || [], data.investmentTransactions || [])
-      useGoalsStore.getState().hydrate(data.goals || [])
-      if (data.fgtsRecords) {
-        useFGTSStore.getState().hydrate(data.fgtsRecords)
-      }
-      if (data.incomeEntries) {
-        useIncomeStore.getState().hydrate(data.incomeEntries)
-      }
-      addNotification('Dados importados com sucesso', 'success')
+      setPendingImportData(result.data as AppData)
+      setImportConfirmOpen(true)
     }
     setIsImporting(false)
+  }
+
+  const confirmImport = (): void => {
+    if (!pendingImportData) return
+    const data = pendingImportData
+    useSettingsStore.getState().hydrate(data.settings, data.workspaces)
+    useBillsStore.getState().hydrate(data.bills || [], data.monthlyBillRecords || [])
+    useInvestmentsStore.getState().hydrate(data.investments || [], data.investmentTransactions || [])
+    useGoalsStore.getState().hydrate(data.goals || [])
+    if (data.fgtsRecords) {
+      useFGTSStore.getState().hydrate(data.fgtsRecords)
+    }
+    if (data.incomeEntries) {
+      useIncomeStore.getState().hydrate(data.incomeEntries)
+    }
+    addNotification('Dados importados com sucesso', 'success')
+    setPendingImportData(null)
+    setImportConfirmOpen(false)
   }
 
   const handleResetDatabase = (): void => {
@@ -460,6 +470,38 @@ export function SettingsPage(): React.JSX.Element {
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apagar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Import Confirmation Dialog */}
+      <Modal
+        open={importConfirmOpen}
+        onClose={() => { setImportConfirmOpen(false); setPendingImportData(null) }}
+        title="Confirmar Importação"
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg bg-amber-50 p-3">
+            <p className="text-sm font-medium text-amber-800">
+              Atenção: seus dados atuais serão substituídos!
+            </p>
+            <p className="mt-1 text-xs text-amber-600">
+              Ao confirmar, todos os dados atuais (contas, investimentos, metas, receitas, FGTS e configurações) serão sobrescritos pelos dados do arquivo importado.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => { setImportConfirmOpen(false); setPendingImportData(null) }}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmImport}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+            >
+              Importar e Substituir
             </button>
           </div>
         </div>

@@ -364,6 +364,9 @@ export function DashboardPage(): React.JSX.Element {
         open={showReport}
         onClose={() => setShowReport(false)}
         monthKey={month}
+        billWorkspaceIds={activeBillWs}
+        investWorkspaceIds={activeInvestWs}
+        incomeWorkspaceIds={activeIncomeWs}
       />
     </div>
   )

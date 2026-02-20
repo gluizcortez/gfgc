@@ -198,7 +198,8 @@ export function BillFormModal({
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              disabled={value <= 0}
+              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {initialData ? 'Salvar' : 'Adicionar'}
             </button>

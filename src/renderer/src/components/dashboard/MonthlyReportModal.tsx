@@ -17,6 +17,9 @@ interface MonthlyReportModalProps {
   open: boolean
   onClose: () => void
   monthKey: string
+  billWorkspaceIds?: string[]
+  investWorkspaceIds?: string[]
+  incomeWorkspaceIds?: string[]
 }
 
 function fmt(cents: number): string {
@@ -34,7 +37,7 @@ function statusLabel(bill: BillEntry): string {
   return BILL_STATUS_LABELS[effective] || effective
 }
 
-export function MonthlyReportModal({ open, onClose, monthKey }: MonthlyReportModalProps): React.JSX.Element {
+export function MonthlyReportModal({ open, onClose, monthKey, billWorkspaceIds, investWorkspaceIds, incomeWorkspaceIds }: MonthlyReportModalProps): React.JSX.Element {
   const billRecords = useBillsStore((s) => s.monthlyRecords)
   const investments = useInvestmentsStore((s) => s.investments)
   const transactions = useInvestmentsStore((s) => s.transactions)
@@ -44,18 +47,20 @@ export function MonthlyReportModal({ open, onClose, monthKey }: MonthlyReportMod
   const categories = useSettingsStore((s) => s.settings.categories)
 
   const monthBills = useMemo(
-    () => billRecords.filter((r) => r.monthKey === monthKey).flatMap((r) => r.bills),
-    [billRecords, monthKey]
+    () => billRecords
+      .filter((r) => r.monthKey === monthKey && (!billWorkspaceIds || billWorkspaceIds.includes(r.workspaceId)))
+      .flatMap((r) => r.bills),
+    [billRecords, monthKey, billWorkspaceIds]
   )
 
   const monthIncome = useMemo(
-    () => incomeEntries.filter((e) => e.monthKey === monthKey),
-    [incomeEntries, monthKey]
+    () => incomeEntries.filter((e) => e.monthKey === monthKey && (!incomeWorkspaceIds || incomeWorkspaceIds.includes(e.workspaceId))),
+    [incomeEntries, monthKey, incomeWorkspaceIds]
   )
 
   const monthTx = useMemo(
-    () => transactions.filter((t) => t.monthKey === monthKey),
-    [transactions, monthKey]
+    () => transactions.filter((t) => t.monthKey === monthKey && (!investWorkspaceIds || investWorkspaceIds.includes(t.workspaceId))),
+    [transactions, monthKey, investWorkspaceIds]
   )
 
   const totalExpenses = monthBills.reduce((s, b) => s + b.value, 0)
@@ -80,7 +85,7 @@ export function MonthlyReportModal({ open, onClose, monthKey }: MonthlyReportMod
   const contributions = monthTx.filter((t) => t.type === 'contribution').reduce((s, t) => s + t.amount, 0)
   const withdrawals = monthTx.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0)
   const yields = monthTx.filter((t) => t.type === 'yield').reduce((s, t) => s + t.amount, 0)
-  const totalBalance = investments.filter((i) => i.isActive).reduce((s, i) => s + i.currentBalance, 0)
+  const totalBalance = investments.filter((i) => i.isActive && (!investWorkspaceIds || investWorkspaceIds.includes(i.workspaceId))).reduce((s, i) => s + i.currentBalance, 0)
 
   const activeGoals = goals.filter((g) => g.isActive)
 

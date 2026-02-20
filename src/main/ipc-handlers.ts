@@ -9,9 +9,14 @@ function isValidAppData(data: unknown): data is Record<string, unknown> {
   if (!data || typeof data !== 'object') return false
   const d = data as Record<string, unknown>
   if (!d.settings || typeof d.settings !== 'object') return false
-  if (!Array.isArray(d.bills)) return false
-  if (!Array.isArray(d.investments)) return false
-  if (!Array.isArray(d.goals)) return false
+  if (!Array.isArray(d.workspaces ?? [])) return false
+  if (!Array.isArray(d.bills ?? [])) return false
+  if (!Array.isArray(d.monthlyBillRecords ?? [])) return false
+  if (!Array.isArray(d.investments ?? [])) return false
+  if (!Array.isArray(d.investmentTransactions ?? [])) return false
+  if (!Array.isArray(d.goals ?? [])) return false
+  if (!Array.isArray(d.fgtsRecords ?? [])) return false
+  if (!Array.isArray(d.incomeEntries ?? [])) return false
   return true
 }
 

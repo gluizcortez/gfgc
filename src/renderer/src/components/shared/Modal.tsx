@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -9,13 +10,30 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, wide }: ModalProps): React.JSX.Element | null {
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    contentRef.current?.focus()
+    return () => window.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
       <div
-        className={`relative z-10 max-h-[85vh] overflow-auto rounded-xl bg-white p-6 shadow-xl ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+        ref={contentRef}
+        tabIndex={-1}
+        className={`relative z-10 max-h-[85vh] overflow-auto rounded-xl bg-white p-6 shadow-xl focus:outline-none ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>

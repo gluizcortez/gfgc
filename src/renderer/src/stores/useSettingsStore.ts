@@ -24,7 +24,7 @@ interface SettingsState {
   deleteCustomField: (id: EntityId) => void
 
   // Workspace actions
-  addWorkspace: (name: string, type: 'bills' | 'investments' | 'fgts') => EntityId
+  addWorkspace: (name: string, type: 'bills' | 'investments' | 'fgts' | 'income') => EntityId
   updateWorkspace: (id: EntityId, updates: Partial<Workspace>) => void
   deleteWorkspace: (id: EntityId) => void
   reorderWorkspaces: (ids: EntityId[]) => void
@@ -77,8 +77,12 @@ export const useSettingsStore = create<SettingsState>()(
       }),
 
     deleteCategory: (id) => {
-      const fallbackId = 'cat-9' // "Outros"
-      useBillsStore.getState().reassignCategory(id, fallbackId)
+      const cats = useSettingsStore.getState().settings.categories
+      const fallback = cats.find((c) => c.id !== id && (c.name === 'Outros' || c.isDefault)) || cats.find((c) => c.id !== id)
+      const fallbackId = fallback?.id || id
+      if (fallbackId !== id) {
+        useBillsStore.getState().reassignCategory(id, fallbackId)
+      }
       set((state) => {
         state.settings.categories = state.settings.categories.filter((c) => c.id !== id)
       })

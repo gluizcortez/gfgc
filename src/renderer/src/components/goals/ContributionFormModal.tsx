@@ -121,7 +121,8 @@ export function ContributionFormModal({
           </button>
           <button
             type="submit"
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            disabled={actualAmount <= 0}
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Registrar
           </button>

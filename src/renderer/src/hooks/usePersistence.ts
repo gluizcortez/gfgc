@@ -51,9 +51,23 @@ export function usePersistence(): void {
       useIncomeStore.subscribe(save)
     ]
 
+    // Flush pending save immediately when window is closing
+    const flushOnClose = (): void => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+        if (window.api) {
+          const data = collectAppData()
+          window.api.saveData(data).catch(() => {})
+        }
+      }
+    }
+    window.addEventListener('beforeunload', flushOnClose)
+
     return () => {
       unsubs.forEach((unsub) => unsub())
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      window.removeEventListener('beforeunload', flushOnClose)
+      flushOnClose()
     }
   }, [])
 }

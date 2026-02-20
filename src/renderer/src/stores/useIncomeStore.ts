@@ -93,15 +93,18 @@ export const useIncomeStore = create<IncomeState>()(
 
     removeRecurrence: (name, category, workspaceId) =>
       set((state) => {
-        for (const entry of state.entries) {
-          if (entry.name === name && entry.category === category && entry.workspaceId === workspaceId) {
-            entry.isRecurring = false
-          }
+        // Only update the latest entry matching this name+category+workspace
+        const matches = state.entries
+          .filter((e) => e.name === name && e.category === category && e.workspaceId === workspaceId)
+          .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+        if (matches.length > 0) {
+          matches[0].isRecurring = false
         }
       }),
 
     restoreRecurrence: (name, category, workspaceId) =>
       set((state) => {
+        // Restore all entries matching this name+category+workspace
         for (const entry of state.entries) {
           if (entry.name === name && entry.category === category && entry.workspaceId === workspaceId) {
             entry.isRecurring = true

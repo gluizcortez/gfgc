@@ -240,7 +240,7 @@ export function SearchBar(): React.JSX.Element {
           onChange={(e) => { setQuery(e.target.value); setIsOpen(true) }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Pesquisar... (⌘K)"
+          placeholder="Pesquisar... (⌘K / Ctrl+K)"
           className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 shadow-sm transition-colors focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400"
         />
       </div>
