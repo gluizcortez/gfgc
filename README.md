@@ -452,6 +452,16 @@ O build é gerenciado pelo **electron-builder** com a seguinte configuração:
 | Windows | `.exe` (NSIS installer) | x64 |
 | Linux | `.AppImage` | x64 |
 
+### Instalação no macOS
+
+Como o app não possui assinatura de desenvolvedor Apple (code signing), o macOS pode bloquear a abertura exibindo a mensagem **"GFGC está danificado e não pode ser aberto"**. Para resolver, execute o seguinte comando no Terminal após instalar o app:
+
+```bash
+xattr -cr /Applications/GFGC.app
+```
+
+Depois disso, o app abrirá normalmente.
+
 ### Releases
 
 Releases são publicados via [GitHub Releases](https://github.com/gluizcortez/gfgc/releases). O app verifica automaticamente por novas versões ao iniciar, consultando a GitHub API.
