@@ -24,7 +24,7 @@ export interface ElectronAPI {
   loadData: () => Promise<unknown>
   saveData: (data: unknown) => Promise<{ success: boolean }>
   exportData: (data: unknown) => Promise<{ success: boolean; path?: string }>
-  importData: () => Promise<{ success: boolean; data?: unknown }>
+  importData: () => Promise<{ success: boolean; data?: unknown; error?: string }>
   pickAttachment: () => Promise<AttachmentResult | null>
   deleteAttachment: (path: string) => Promise<{ success: boolean }>
   openAttachment: (path: string) => Promise<{ success: boolean }>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Modal } from './Modal'
 
 interface ConfirmDialogProps {
@@ -19,22 +20,34 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   danger
 }: ConfirmDialogProps): React.JSX.Element {
+  const [confirmed, setConfirmed] = useState(false)
+
+  const handleConfirm = (): void => {
+    if (confirmed) return
+    setConfirmed(true)
+    onConfirm()
+    onClose()
+  }
+
+  const handleClose = (): void => {
+    setConfirmed(false)
+    onClose()
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title={title}>
+    <Modal open={open} onClose={handleClose} title={title}>
       <p className="mb-6 text-sm text-gray-600">{message}</p>
       <div className="flex justify-end gap-2">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
         >
           Cancelar
         </button>
         <button
-          onClick={() => {
-            onConfirm()
-            onClose()
-          }}
-          className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
+          onClick={handleConfirm}
+          disabled={confirmed}
+          className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${
             danger
               ? 'bg-red-600 hover:bg-red-700'
               : 'bg-primary-600 hover:bg-primary-700'

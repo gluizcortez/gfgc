@@ -120,6 +120,8 @@ export function SettingsPage(): React.JSX.Element {
       if (result.success) {
         addNotification('Dados exportados com sucesso', 'success')
       }
+    } catch {
+      addNotification('Erro ao exportar dados', 'error')
     } finally {
       setIsExporting(false)
     }
@@ -127,12 +129,19 @@ export function SettingsPage(): React.JSX.Element {
 
   const handleImport = async (): Promise<void> => {
     setIsImporting(true)
-    const result = await window.api.importData()
-    if (result.success && result.data) {
-      setPendingImportData(result.data as AppData)
-      setImportConfirmOpen(true)
+    try {
+      const result = await window.api.importData()
+      if (result.success && result.data) {
+        setPendingImportData(result.data as AppData)
+        setImportConfirmOpen(true)
+      } else if (result.error) {
+        addNotification(result.error, 'error')
+      }
+    } catch {
+      addNotification('Erro ao importar dados', 'error')
+    } finally {
+      setIsImporting(false)
     }
-    setIsImporting(false)
   }
 
   const confirmImport = (): void => {

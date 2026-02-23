@@ -17,6 +17,7 @@ function isValidAppData(data: unknown): data is Record<string, unknown> {
   if (!Array.isArray(d.goals ?? [])) return false
   if (!Array.isArray(d.fgtsRecords ?? [])) return false
   if (!Array.isArray(d.incomeEntries ?? [])) return false
+  if (!Array.isArray(d.netWorthTabs ?? [])) return false
   return true
 }
 
@@ -50,8 +51,13 @@ export function registerIpcHandlers(): void {
       properties: ['openFile']
     })
     if (!result.canceled && result.filePaths.length > 0) {
-      const raw = readFileSync(result.filePaths[0], 'utf-8')
-      const data = JSON.parse(raw)
+      let data: unknown
+      try {
+        const raw = readFileSync(result.filePaths[0], 'utf-8')
+        data = JSON.parse(raw)
+      } catch {
+        return { success: false, error: 'Arquivo inválido: não foi possível ler o JSON' }
+      }
       if (!isValidAppData(data)) {
         return { success: false, error: 'Arquivo inválido: estrutura de dados não reconhecida' }
       }
