@@ -94,6 +94,7 @@ export function GoalFormModal({
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     if (isDateInvalid) return
+    if (!targetAmount || targetAmount <= 0) return
     onSave({
       name,
       description,

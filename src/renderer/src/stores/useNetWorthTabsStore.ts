@@ -20,10 +20,11 @@ export const useNetWorthTabsStore = create<NetWorthTabsState>()(
     addTab: (data) => {
       const id = nanoid()
       set((state) => {
+        const maxOrder = state.tabs.reduce((max, t) => Math.max(max, t.sortOrder), -1)
         state.tabs.push({
           ...data,
           id,
-          sortOrder: state.tabs.length,
+          sortOrder: maxOrder + 1,
           createdAt: new Date().toISOString()
         })
       })

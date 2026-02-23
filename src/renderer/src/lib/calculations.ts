@@ -153,8 +153,15 @@ export function calculateYearlyTotals(billRecords: MonthlyBillRecord[], year: nu
 // Net worth
 export function calculateNetWorth(investments: Investment[], fgtsRecords: FGTSRecord[]): number {
   const investTotal = investments.reduce((sum, i) => sum + i.currentBalance, 0)
-  const fgtsLatest = [...fgtsRecords].sort((a, b) => b.monthKey.localeCompare(a.monthKey))[0]?.balance || 0
-  return investTotal + fgtsLatest
+  const latestByWorkspace = new Map<string, FGTSRecord>()
+  for (const r of fgtsRecords) {
+    const existing = latestByWorkspace.get(r.workspaceId)
+    if (!existing || r.monthKey > existing.monthKey) {
+      latestByWorkspace.set(r.workspaceId, r)
+    }
+  }
+  const fgtsTotal = [...latestByWorkspace.values()].reduce((sum, r) => sum + r.balance, 0)
+  return investTotal + fgtsTotal
 }
 
 // Goal projection

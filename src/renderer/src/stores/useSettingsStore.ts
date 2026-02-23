@@ -109,13 +109,14 @@ export const useSettingsStore = create<SettingsState>()(
       set((state) => {
         const sameType = state.workspaces.filter((w) => w.type === type)
         const colorIndex = sameType.length % WORKSPACE_COLORS.length
+        const maxOrder = sameType.reduce((max, w) => Math.max(max, w.sortOrder), -1)
         state.workspaces.push({
           id,
           name,
           type,
           color: WORKSPACE_COLORS[colorIndex],
           createdAt: new Date().toISOString(),
-          sortOrder: sameType.length
+          sortOrder: maxOrder + 1
         })
       })
       return id
