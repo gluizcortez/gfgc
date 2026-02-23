@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { X, RotateCcw, Pencil, Trash2, Check, Plus } from 'lucide-react'
+import { X, RotateCcw, Pencil, Trash2, Check, Plus, CalendarX2 } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { CurrencyInput } from '@/components/shared/CurrencyInput'
@@ -7,12 +7,13 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { formatCurrency } from '@/lib/formatters'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
-import type { Bill, EntityId } from '@/types/models'
+import type { Bill, EntityId, MonthKey } from '@/types/models'
 
 interface RecurringBillsModalProps {
   open: boolean
   onClose: () => void
   workspaceId: EntityId
+  currentMonth: MonthKey
 }
 
 interface EditState {
@@ -23,11 +24,13 @@ interface EditState {
   notes: string
 }
 
-export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBillsModalProps): React.JSX.Element {
+export function RecurringBillsModal({ open, onClose, workspaceId, currentMonth }: RecurringBillsModalProps): React.JSX.Element {
   const bills = useBillsStore((s) => s.bills)
+  const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
   const addBill = useBillsStore((s) => s.addBill)
   const updateBill = useBillsStore((s) => s.updateBill)
   const deleteBill = useBillsStore((s) => s.deleteBill)
+  const cancelFutureEntries = useBillsStore((s) => s.cancelFutureEntries)
 
   const allCategories = useSettingsStore((s) => s.settings.categories)
   const categories = useMemo(
@@ -40,9 +43,29 @@ export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBil
     [bills, workspaceId]
   )
 
+  const billStats = useMemo(() => {
+    const stats = new Map<string, { monthCount: number; entryCount: number }>()
+    for (const bill of wsBills) {
+      let monthCount = 0
+      let entryCount = 0
+      for (const record of monthlyRecords) {
+        if (record.workspaceId === workspaceId) {
+          const entries = record.bills.filter((e) => e.billId === bill.id)
+          if (entries.length > 0) {
+            monthCount++
+            entryCount += entries.length
+          }
+        }
+      }
+      stats.set(bill.id, { monthCount, entryCount })
+    }
+    return stats
+  }, [wsBills, monthlyRecords, workspaceId])
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editState, setEditState] = useState<EditState>({ name: '', value: 0, dueDay: 1, categoryId: '', notes: '' })
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<Bill | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [newBill, setNewBill] = useState<EditState>({ name: '', value: 0, dueDay: 1, categoryId: categories[0]?.id || '', notes: '' })
 
@@ -160,7 +183,7 @@ export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBil
 
         {/* Bills list */}
         {wsBills.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-400">Nenhum template cadastrado.</p>
+          <p className="py-6 text-center text-sm text-gray-400">Nenhum template cadastrado. Crie um template para gerar contas automaticamente a cada mês.</p>
         ) : (
           <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 max-h-[50vh] overflow-auto">
             {wsBills.map((bill) =>
@@ -219,6 +242,14 @@ export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBil
                     <p className="text-xs text-gray-400">
                       {getCategoryName(bill.categoryId)} · dia {bill.dueDay} · {formatCurrency(bill.value)}
                     </p>
+                    {(() => {
+                      const stats = billStats.get(bill.id)
+                      return stats && stats.entryCount > 0 ? (
+                        <p className="text-xs text-gray-400">{stats.entryCount} {stats.entryCount === 1 ? 'entrada gerada' : 'entradas geradas'} em {stats.monthCount} {stats.monthCount === 1 ? 'mês' : 'meses'}</p>
+                      ) : (
+                        <p className="text-xs text-gray-400">Nenhuma entrada gerada ainda</p>
+                      )
+                    })()}
                     {bill.notes && <p className="text-xs text-gray-400 truncate">{bill.notes}</p>}
                   </div>
                   <span
@@ -239,6 +270,14 @@ export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBil
                         }`}
                       >
                         {bill.isRecurring ? <X size={15} /> : <RotateCcw size={15} />}
+                      </button>
+                    </SimpleTooltip>
+                    <SimpleTooltip label="Cancelar ocorrências futuras a partir do mês atual">
+                      <button
+                        onClick={() => setCancelTarget(bill)}
+                        className="rounded-md p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-500"
+                      >
+                        <CalendarX2 size={15} />
                       </button>
                     </SimpleTooltip>
                     <SimpleTooltip label="Editar template">
@@ -277,6 +316,21 @@ export function RecurringBillsModal({ open, onClose, workspaceId }: RecurringBil
         title="Excluir Template"
         message={deleteTarget ? `Excluir o template "${deleteTarget.name}"? Contas já geradas nos meses anteriores não serão afetadas.` : ''}
         confirmLabel="Excluir"
+        danger
+      />
+
+      <ConfirmDialog
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={() => {
+          if (cancelTarget) {
+            cancelFutureEntries(cancelTarget.id, currentMonth)
+            setCancelTarget(null)
+          }
+        }}
+        title="Cancelar Ocorrências Futuras"
+        message={cancelTarget ? `Cancelar todas as contas "${cancelTarget.name}" a partir do mês atual (${currentMonth}) e pausar o template? Contas de meses anteriores não serão afetadas.` : ''}
+        confirmLabel="Cancelar Futuras"
         danger
       />
     </Modal>

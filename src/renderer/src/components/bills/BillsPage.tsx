@@ -364,6 +364,7 @@ export function BillsPage(): React.JSX.Element {
           open={showRecurringModal}
           onClose={() => setShowRecurringModal(false)}
           workspaceId={effectiveId}
+          currentMonth={month}
         />
       )}
 

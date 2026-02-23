@@ -47,7 +47,7 @@ export function AssetBreakdownCards({ investments, fgtsBalance, netWorth }: Asse
                 style={{ width: `${Math.min(entry.percentage, 100)}%`, backgroundColor: colors[i % colors.length] }}
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">{Math.round(entry.percentage)}% do patrimônio</p>
+            <p className="mt-1 text-xs text-gray-500">{entry.percentage.toFixed(2)}% do patrimônio</p>
           </div>
         </div>
       ))}

@@ -30,6 +30,9 @@ interface BillsState {
   // Utility
   duplicateMonth: (workspaceId: EntityId, sourceMonth: MonthKey, targetMonth: MonthKey) => void
 
+  // Cancel all future entries for a template from a given month onwards
+  cancelFutureEntries: (billId: EntityId, fromMonthKey: MonthKey) => void
+
   // Category reassignment
   reassignCategory: (oldCategoryId: EntityId, newCategoryId: EntityId) => void
 
@@ -207,6 +210,17 @@ export const useBillsStore = create<BillsState>()(
             monthKey: targetMonth,
             bills: clonedBills
           })
+        }
+      }),
+
+    cancelFutureEntries: (billId, fromMonthKey) =>
+      set((state) => {
+        const bill = state.bills.find((b) => b.id === billId)
+        if (bill) bill.isRecurring = false
+        for (const record of state.monthlyRecords) {
+          if (record.monthKey >= fromMonthKey) {
+            record.bills = record.bills.filter((entry) => entry.billId !== billId)
+          }
         }
       }),
 

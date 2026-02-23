@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal } from './Modal'
 
 interface ConfirmDialogProps {
@@ -21,6 +21,10 @@ export function ConfirmDialog({
   danger
 }: ConfirmDialogProps): React.JSX.Element {
   const [confirmed, setConfirmed] = useState(false)
+
+  useEffect(() => {
+    if (open) setConfirmed(false)
+  }, [open])
 
   const handleConfirm = (): void => {
     if (confirmed) return
