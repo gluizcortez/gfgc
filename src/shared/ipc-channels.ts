@@ -8,5 +8,6 @@ export const IPC = {
   ATTACHMENT_OPEN: 'attachment:open',
   UPDATE_CHECK: 'update:check',
   UPDATE_DOWNLOAD: 'update:download',
-  UPDATE_GET_VERSION: 'update:get-version'
+  UPDATE_GET_VERSION: 'update:get-version',
+  UPDATE_GET_INSTALLED_NOTES: 'update:get-installed-notes'
 } as const

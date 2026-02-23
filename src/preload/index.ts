@@ -11,7 +11,8 @@ const api = {
   openAttachment: (path: string): Promise<unknown> => ipcRenderer.invoke(IPC.ATTACHMENT_OPEN, path),
   checkForUpdate: (): Promise<unknown> => ipcRenderer.invoke(IPC.UPDATE_CHECK),
   downloadUpdate: (url: string, filename: string): Promise<unknown> => ipcRenderer.invoke(IPC.UPDATE_DOWNLOAD, url, filename),
-  getAppVersion: (): Promise<unknown> => ipcRenderer.invoke(IPC.UPDATE_GET_VERSION)
+  getAppVersion: (): Promise<unknown> => ipcRenderer.invoke(IPC.UPDATE_GET_VERSION),
+  getInstalledVersionNotes: (): Promise<unknown> => ipcRenderer.invoke(IPC.UPDATE_GET_INSTALLED_NOTES)
 }
 
 if (process.contextIsolated) {

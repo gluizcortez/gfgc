@@ -125,7 +125,7 @@ export function QuickCalendar(): React.JSX.Element {
 
           {/* Calendar grid */}
           <div className="flex-1 flex flex-col px-6 pb-5 min-h-0">
-            <div className="rounded-xl border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            <div className="rounded-xl border border-gray-200 flex-1 flex flex-col overflow-y-auto">
               {/* Day name headers */}
               <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/60">
                 {dayNames.map((name) => (
@@ -136,7 +136,7 @@ export function QuickCalendar(): React.JSX.Element {
               </div>
 
               {/* Day cells */}
-              <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+              <div className="grid grid-cols-7 auto-rows-[minmax(72px,1fr)]">
                 {cells.map((day, index) => {
                   if (day === null) {
                     return <div key={`empty-${index}`} className="border-b border-r border-gray-100 bg-gray-50/30" />

@@ -52,12 +52,18 @@ export function SettingsPage(): React.JSX.Element {
   const [updateAssets, setUpdateAssets] = useState<UpdateAsset[]>([])
   const [updateError, setUpdateError] = useState('')
   const [releaseNotes, setReleaseNotes] = useState('')
-  const [showReleaseNotes, setShowReleaseNotes] = useState(false)
+  const [notesModal, setNotesModal] = useState<{ open: boolean; notes: string; version: string }>({ open: false, notes: '', version: '' })
+  const [installedVersionNotes, setInstalledVersionNotes] = useState('')
 
   const pendingUpdate = useUIStore((s) => s.pendingUpdate)
 
   useEffect(() => {
-    window.api.getAppVersion().then((v) => setAppVersion(v))
+    window.api.getAppVersion().then((v) => {
+      setAppVersion(v)
+      window.api.getInstalledVersionNotes()
+        .then((notes) => setInstalledVersionNotes(notes as string))
+        .catch(() => {})
+    })
   }, [])
 
   // Pre-populate from pendingUpdate if available
@@ -195,7 +201,16 @@ export function SettingsPage(): React.JSX.Element {
           </h3>
           <div className="space-y-3">
             {appVersion && (
-              <p className="text-xs text-gray-500">Versão atual: <span className="font-medium text-gray-700">v{appVersion}</span></p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <p className="text-xs text-gray-500">Versão atual: <span className="font-medium text-gray-700">v{appVersion}</span></p>
+                <button
+                  onClick={() => setNotesModal({ open: true, notes: installedVersionNotes, version: appVersion })}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  <Sparkles size={13} />
+                  Novidades da versão v{appVersion}
+                </button>
+              </div>
             )}
 
             {updateStatus === 'idle' && (
@@ -260,7 +275,7 @@ export function SettingsPage(): React.JSX.Element {
                   )}
                   {releaseNotes && (
                     <button
-                      onClick={() => setShowReleaseNotes(true)}
+                      onClick={() => setNotesModal({ open: true, notes: releaseNotes, version: latestVersion })}
                       className="flex items-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
                     >
                       <Sparkles size={16} />
@@ -528,22 +543,22 @@ export function SettingsPage(): React.JSX.Element {
 
       {/* Release Notes Modal */}
       <Modal
-        open={showReleaseNotes}
-        onClose={() => setShowReleaseNotes(false)}
+        open={notesModal.open}
+        onClose={() => setNotesModal((m) => ({ ...m, open: false }))}
         title="O que tem de novo?"
       >
         <div className="space-y-3">
           <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs font-medium text-blue-700">Versão v{latestVersion}</p>
+            <p className="text-xs font-medium text-blue-700">Versão v{notesModal.version}</p>
           </div>
           <div className="max-h-96 overflow-y-auto">
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
-              {releaseNotes || 'Sem notas de release disponíveis.'}
+              {notesModal.notes || 'Sem notas disponíveis para esta versão.'}
             </pre>
           </div>
           <div className="flex justify-end">
             <button
-              onClick={() => setShowReleaseNotes(false)}
+              onClick={() => setNotesModal((m) => ({ ...m, open: false }))}
               className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
             >
               Fechar

@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { IPC } from '../shared/ipc-channels'
 import { loadData, saveData } from './storage'
 import { pickAndSaveAttachment, deleteAttachment, openAttachment } from './attachments'
-import { checkForUpdate, downloadUpdate } from './updater'
+import { checkForUpdate, downloadUpdate, fetchVersionNotes } from './updater'
 
 function isValidAppData(data: unknown): data is Record<string, unknown> {
   if (!data || typeof data !== 'object') return false
@@ -89,5 +89,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.UPDATE_GET_VERSION, () => {
     return app.getVersion()
+  })
+
+  ipcMain.handle(IPC.UPDATE_GET_INSTALLED_NOTES, async () => {
+    const version = app.getVersion()
+    return fetchVersionNotes(version)
   })
 }

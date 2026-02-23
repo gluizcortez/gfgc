@@ -57,6 +57,14 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
   return { hasUpdate, currentVersion, latestVersion, assets, releaseNotes }
 }
 
+export async function fetchVersionNotes(version: string): Promise<string> {
+  const url = `https://api.github.com/repos/gluizcortez/gfgc/releases/tags/v${version}`
+  const response = await net.fetch(url, { headers: { 'User-Agent': 'GFGC-App' } })
+  if (!response.ok) return ''
+  const release = await response.json()
+  return release.body || ''
+}
+
 export async function downloadUpdate(url: string, filename: string): Promise<{ success: boolean; filePath?: string }> {
   const tempDir = join(app.getPath('temp'), 'gfgc-update')
   if (!existsSync(tempDir)) {

@@ -63,6 +63,15 @@ export function BillsPage(): React.JSX.Element {
 
   const bills = currentRecord?.bills || []
 
+  // Calendar view: aggregate all records for the active workspace, filtered by dueDate month
+  const calendarBills = useMemo(() => {
+    if (!effectiveId) return []
+    return monthlyRecords
+      .filter((r) => r.workspaceId === effectiveId)
+      .flatMap((r) => r.bills)
+      .filter((b) => b.dueDate.substring(0, 7) === month)
+  }, [monthlyRecords, effectiveId, month])
+
   // Auto-generate recurring bills
   const autoGenChecked = useRef<string>('')
   useEffect(() => {
@@ -324,7 +333,7 @@ export function BillsPage(): React.JSX.Element {
             }}
           />
         ) : viewMode === 'calendar' ? (
-          <BillsCalendar bills={bills} monthKey={month} />
+          <BillsCalendar bills={calendarBills} monthKey={month} />
         ) : (
           <BillsTable
             bills={bills}

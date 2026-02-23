@@ -17,6 +17,7 @@ export interface UpdateCheckResult {
   currentVersion: string
   latestVersion: string
   assets: UpdateAsset[]
+  releaseNotes: string
 }
 
 export interface ElectronAPI {
@@ -30,6 +31,7 @@ export interface ElectronAPI {
   checkForUpdate: () => Promise<UpdateCheckResult>
   downloadUpdate: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string }>
   getAppVersion: () => Promise<string>
+  getInstalledVersionNotes: () => Promise<string>
 }
 
 declare global {
