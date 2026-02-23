@@ -6,7 +6,7 @@ import { AnnualCategoryPieChart } from '@/components/annual/AnnualCategoryPieCha
 import { IncomeBarChart } from './IncomeBarChart'
 import { FGTSLineChart } from './FGTSLineChart'
 import { formatCurrency } from '@/lib/formatters'
-import { getYearMonths, getCategoryTotals, calculateInvestmentsTotals } from '@/lib/calculations'
+import { getYearMonths, getCategoryTotals, calculateInvestmentsTotals, calculateOverallGoalProgress } from '@/lib/calculations'
 import { MONTH_NAMES_PT } from '@/lib/constants'
 import { INCOME_CATEGORY_LABELS } from '@/types/models'
 import type {
@@ -103,8 +103,7 @@ export function YearView({
   const activeGoals = goals.filter((g) => g.isActive)
   const onTrackGoals = activeGoals.filter((g) => {
     if (g.contributions.length === 0) return false
-    const last = g.contributions[g.contributions.length - 1]
-    return last.actualAmount >= g.targetAmount
+    return calculateOverallGoalProgress(g).status !== 'below'
   })
 
   return (

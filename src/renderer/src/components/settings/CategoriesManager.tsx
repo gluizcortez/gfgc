@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { parseCurrencyInput, formatCurrency } from '@/lib/formatters'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import type { Category } from '@/types/models'
 
 export function CategoriesManager(): React.JSX.Element {
@@ -12,6 +13,7 @@ export function CategoriesManager(): React.JSX.Element {
   const deleteCategory = useSettingsStore((s) => s.deleteCategory)
   const addNotification = useUIStore((s) => s.addNotification)
 
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editColor, setEditColor] = useState('#6366f1')
@@ -48,6 +50,7 @@ export function CategoriesManager(): React.JSX.Element {
   const handleDelete = (id: string): void => {
     deleteCategory(id)
     addNotification('Categoria removida', 'success')
+    setDeleteTarget(null)
   }
 
   const typeLabel = (t: string): string => {
@@ -225,7 +228,7 @@ export function CategoriesManager(): React.JSX.Element {
                         </button>
                         {!cat.isDefault && (
                           <button
-                            onClick={() => handleDelete(cat.id)}
+                            onClick={() => setDeleteTarget(cat.id)}
                             className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
                           >
                             <Trash2 size={15} />
@@ -240,6 +243,15 @@ export function CategoriesManager(): React.JSX.Element {
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
+        title="Excluir Categoria"
+        message="Tem certeza que deseja excluir esta categoria? As contas associadas serão desvinculadas."
+        confirmLabel="Excluir"
+        danger
+      />
     </div>
   )
 }

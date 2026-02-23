@@ -52,6 +52,8 @@ export function TabBar({
     if (deleteTarget) {
       onDelete(deleteTarget)
       setDeleteTarget(null)
+      setEditingId(null)
+      setEditName('')
     }
   }
 

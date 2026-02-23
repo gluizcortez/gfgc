@@ -32,26 +32,7 @@ export interface GoalProgress {
 }
 
 export function calculateGoalProgress(goal: Goal): GoalProgress {
-  const contributions = goal.contributions
-  if (contributions.length === 0) {
-    return { target: goal.targetAmount, actual: 0, percentage: 0, status: 'below', difference: -goal.targetAmount }
-  }
-
-  const latest = contributions[contributions.length - 1]
-  const percentage = latest.targetAmount > 0 ? (latest.actualAmount / latest.targetAmount) * 100 : 0
-  const difference = latest.actualAmount - latest.targetAmount
-
-  let status: GoalProgress['status'] = 'on_target'
-  if (difference > 0) status = 'above'
-  else if (difference < 0) status = 'below'
-
-  return {
-    target: latest.targetAmount,
-    actual: latest.actualAmount,
-    percentage: Math.round(percentage * 10) / 10,
-    status,
-    difference
-  }
+  return calculateOverallGoalProgress(goal)
 }
 
 export function normalizePeriodKey(periodKey: string, periodicity: Periodicity): string {

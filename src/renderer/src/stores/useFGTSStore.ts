@@ -16,10 +16,15 @@ interface FGTSState {
 }
 
 export const useFGTSStore = create<FGTSState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     records: [],
 
     addRecord: (data) => {
+      const existing = get().records.find(
+        (r) => r.workspaceId === data.workspaceId && r.monthKey === data.monthKey
+      )
+      if (existing) return existing.id
+
       const id = nanoid()
       set((state) => {
         state.records.push({
