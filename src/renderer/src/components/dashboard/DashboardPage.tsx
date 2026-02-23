@@ -92,16 +92,26 @@ export function DashboardPage(): React.JSX.Element {
     return activeGoals.filter((g) => selectedGoalIds.includes(g.id))
   }, [activeGoals, selectedGoalIds])
 
+  const filteredBillRecords = useMemo(
+    () => billRecords.filter((r) => activeBillWs.includes(r.workspaceId)),
+    [billRecords, activeBillWs]
+  )
+
+  const filteredIncomeEntries = useMemo(
+    () => incomeEntries.filter((e) => activeIncomeWs.includes(e.workspaceId)),
+    [incomeEntries, activeIncomeWs]
+  )
+
   const hasAnyData = workspaces.length > 0
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
   const handleExportYearCSV = (): void => {
     const months = getYearMonths(year)
-    const yearBills = billRecords.filter((r) => months.includes(r.monthKey)).flatMap((r) => r.bills)
+    const yearBills = filteredBillRecords.filter((r) => months.includes(r.monthKey)).flatMap((r) => r.bills)
     const header = 'Mês,Total,Pago,Quantidade'
     const monthlyData = months.map((mk, i) => {
-      const bills = billRecords.filter((r) => r.monthKey === mk).flatMap((r) => r.bills)
+      const bills = filteredBillRecords.filter((r) => r.monthKey === mk).flatMap((r) => r.bills)
       const total = bills.reduce((sum, b) => sum + b.value, 0)
       const paid = bills.filter((b) => b.status === 'paid').reduce((sum, b) => sum + b.value, 0)
       return `${MONTH_NAMES_PT[i].substring(0, 3)} ${year},${(total / 100).toFixed(2)},${(paid / 100).toFixed(2)},${bills.length}`
@@ -203,119 +213,119 @@ export function DashboardPage(): React.JSX.Element {
         )}
       </div>
 
+      {/* Filters */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        {billWorkspaces.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Contas</p>
+            <div className="flex gap-1.5">
+              {billWorkspaces.map((ws) => {
+                const isActive = activeBillWs.includes(ws.id)
+                return (
+                  <button
+                    key={ws.id}
+                    onClick={() => toggleFilter(ws.id, selectedBillWs, setSelectedBillWs, billWorkspaces.map((w) => w.id))}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'border-primary-200 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                    {ws.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        {investWorkspaces.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Investimentos</p>
+            <div className="flex gap-1.5">
+              {investWorkspaces.map((ws) => {
+                const isActive = activeInvestWs.includes(ws.id)
+                return (
+                  <button
+                    key={ws.id}
+                    onClick={() => toggleFilter(ws.id, selectedInvestWs, setSelectedInvestWs, investWorkspaces.map((w) => w.id))}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'border-primary-200 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                    {ws.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        {incomeWorkspaces.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Receitas</p>
+            <div className="flex gap-1.5">
+              {incomeWorkspaces.map((ws) => {
+                const isActive = activeIncomeWs.includes(ws.id)
+                return (
+                  <button
+                    key={ws.id}
+                    onClick={() => toggleFilter(ws.id, selectedIncomeWs, setSelectedIncomeWs, incomeWorkspaces.map((w) => w.id))}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'border-green-200 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
+                    {ws.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        {activeGoals.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Metas</p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeGoals.map((goal) => {
+                const isActive = selectedGoalIds.length === 0 || selectedGoalIds.includes(goal.id)
+                return (
+                  <button
+                    key={goal.id}
+                    onClick={() => toggleFilter(goal.id, selectedGoalIds, setSelectedGoalIds, activeGoals.map((g) => g.id))}
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'border-purple-200 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    {goal.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
       {viewMode === 'year' ? (
         <YearView
           year={year}
-          billRecords={billRecords}
+          billRecords={filteredBillRecords}
           investments={wsInvestments}
           transactions={wsTransactions}
           goals={filteredGoals}
           fgtsRecords={fgtsRecords}
-          incomeEntries={incomeEntries}
+          incomeEntries={filteredIncomeEntries}
           categories={categories}
           onExportCSV={handleExportYearCSV}
         />
       ) : (
         <>
-          {/* Filters */}
-          <div className="mb-6 flex flex-wrap gap-4">
-            {billWorkspaces.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Contas</p>
-                <div className="flex gap-1.5">
-                  {billWorkspaces.map((ws) => {
-                    const isActive = activeBillWs.includes(ws.id)
-                    return (
-                      <button
-                        key={ws.id}
-                        onClick={() => toggleFilter(ws.id, selectedBillWs, setSelectedBillWs, billWorkspaces.map((w) => w.id))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? 'border-primary-200 bg-primary-50 text-primary-700'
-                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
-                        {ws.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-            {investWorkspaces.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Investimentos</p>
-                <div className="flex gap-1.5">
-                  {investWorkspaces.map((ws) => {
-                    const isActive = activeInvestWs.includes(ws.id)
-                    return (
-                      <button
-                        key={ws.id}
-                        onClick={() => toggleFilter(ws.id, selectedInvestWs, setSelectedInvestWs, investWorkspaces.map((w) => w.id))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? 'border-primary-200 bg-primary-50 text-primary-700'
-                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
-                        {ws.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-            {incomeWorkspaces.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Receitas</p>
-                <div className="flex gap-1.5">
-                  {incomeWorkspaces.map((ws) => {
-                    const isActive = activeIncomeWs.includes(ws.id)
-                    return (
-                      <button
-                        key={ws.id}
-                        onClick={() => toggleFilter(ws.id, selectedIncomeWs, setSelectedIncomeWs, incomeWorkspaces.map((w) => w.id))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? 'border-green-200 bg-green-50 text-green-700'
-                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ws.color }} />
-                        {ws.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-            {activeGoals.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-gray-400 uppercase">Metas</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeGoals.map((goal) => {
-                    const isActive = selectedGoalIds.length === 0 || selectedGoalIds.includes(goal.id)
-                    return (
-                      <button
-                        key={goal.id}
-                        onClick={() => toggleFilter(goal.id, selectedGoalIds, setSelectedGoalIds, activeGoals.map((g) => g.id))}
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? 'border-purple-200 bg-purple-50 text-purple-700'
-                            : 'border-gray-200 text-gray-400 hover:border-gray-300'
-                        }`}
-                      >
-                        {goal.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
           <AlertCards bills={monthBills} categories={categories} currentMonth={month} />
 
           <SummaryCards
