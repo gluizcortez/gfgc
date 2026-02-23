@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Calendar, FileDown } from 'lucide-react'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
+import { TabBar } from '@/components/layout/TabBar'
 import { useUIStore } from '@/stores/useUIStore'
 import { AnnualBarChart } from './AnnualBarChart'
 import { AnnualCategoryPieChart } from './AnnualCategoryPieChart'
@@ -14,19 +15,41 @@ import { MONTH_NAMES_PT } from '@/lib/constants'
 export function AnnualSummaryPage(): React.JSX.Element {
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('all')
 
   const billRecords = useBillsStore((s) => s.monthlyRecords)
   const categories = useSettingsStore((s) => s.settings.categories)
   const workspaces = useSettingsStore((s) => s.workspaces)
+  const addWorkspaceStore = useSettingsStore((s) => s.addWorkspace)
+  const updateWorkspace = useSettingsStore((s) => s.updateWorkspace)
+  const deleteWorkspaceSettings = useSettingsStore((s) => s.deleteWorkspace)
+  const deleteWorkspaceData = useBillsStore((s) => s.deleteWorkspaceData)
   const billWorkspaces = useMemo(() => workspaces.filter((w) => w.type === 'bills'), [workspaces])
+
+  const activeId = useUIStore((s) => s.activeBillsWorkspaceId)
+  const setActiveId = useUIStore((s) => s.setActiveBillsWorkspace)
+  const addNotification = useUIStore((s) => s.addNotification)
+
+  const effectiveId = activeId || billWorkspaces[0]?.id || null
+
+  const handleCreateWorkspace = (name: string): void => {
+    const id = addWorkspaceStore(name, 'bills')
+    setActiveId(id)
+  }
+
+  const handleDeleteWorkspace = (id: string): void => {
+    deleteWorkspaceSettings(id)
+    deleteWorkspaceData(id)
+    if (effectiveId === id) {
+      setActiveId(billWorkspaces.find((w) => w.id !== id)?.id || null)
+    }
+  }
 
   const months = useMemo(() => getYearMonths(year), [year])
 
   const filteredRecords = useMemo(() => {
-    if (selectedWorkspaceId === 'all') return billRecords
-    return billRecords.filter((r) => r.workspaceId === selectedWorkspaceId)
-  }, [billRecords, selectedWorkspaceId])
+    if (!effectiveId) return billRecords
+    return billRecords.filter((r) => r.workspaceId === effectiveId)
+  }, [billRecords, effectiveId])
 
   const monthlyData = useMemo(() => {
     return months.map((monthKey, index) => {
@@ -50,8 +73,6 @@ export function AnnualSummaryPage(): React.JSX.Element {
   }, [filteredRecords, months])
 
   const categoryTotals = useMemo(() => getCategoryTotals(yearBills), [yearBills])
-
-  const addNotification = useUIStore((s) => s.addNotification)
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
@@ -90,61 +111,62 @@ export function AnnualSummaryPage(): React.JSX.Element {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Resumo Anual</h1>
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedWorkspaceId}
-            onChange={(e) => setSelectedWorkspaceId(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
-          >
-            <option value="all">Todas as abas</option>
-            {billWorkspaces.map((ws) => (
-              <option key={ws.id} value={ws.id}>{ws.name}</option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
-          >
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <SimpleTooltip label="Exportar resumo anual com totais e categorias em CSV">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+    <div className="flex h-full flex-col">
+      <TabBar
+        workspaces={billWorkspaces}
+        activeId={effectiveId}
+        onSelect={setActiveId}
+        onCreate={handleCreateWorkspace}
+        onRename={(id, name) => updateWorkspace(id, { name })}
+        onDelete={handleDeleteWorkspace}
+      />
+
+      <div className="flex-1 overflow-auto p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-900">Resumo Anual</h1>
+          <div className="flex items-center gap-2">
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
             >
-              <FileDown size={16} />
-              Exportar CSV
-            </button>
-          </SimpleTooltip>
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <SimpleTooltip label="Exportar resumo anual com totais e categorias em CSV">
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                <FileDown size={16} />
+                Exportar CSV
+              </button>
+            </SimpleTooltip>
+          </div>
         </div>
-      </div>
 
-      {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase">Total do Ano</p>
-          <p className="mt-1 text-xl font-bold text-gray-900">{formatCurrency(yearTotal)}</p>
+        {/* Summary cards */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-medium text-gray-500 uppercase">Total do Ano</p>
+            <p className="mt-1 text-xl font-bold text-gray-900">{formatCurrency(yearTotal)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-medium text-gray-500 uppercase">Total Pago</p>
+            <p className="mt-1 text-xl font-bold text-green-600">{formatCurrency(yearPaid)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-medium text-gray-500 uppercase">Média Mensal</p>
+            <p className="mt-1 text-xl font-bold text-gray-900">{formatCurrency(avgMonthly)}</p>
+          </div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase">Total Pago</p>
-          <p className="mt-1 text-xl font-bold text-green-600">{formatCurrency(yearPaid)}</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase">Média Mensal</p>
-          <p className="mt-1 text-xl font-bold text-gray-900">{formatCurrency(avgMonthly)}</p>
-        </div>
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <AnnualBarChart data={monthlyData} />
-        <AnnualCategoryPieChart categoryTotals={categoryTotals} categories={categories} />
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <AnnualBarChart data={monthlyData} />
+          <AnnualCategoryPieChart categoryTotals={categoryTotals} categories={categories} />
+        </div>
       </div>
     </div>
   )

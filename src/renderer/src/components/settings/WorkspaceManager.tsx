@@ -64,6 +64,7 @@ export function WorkspaceManager(): React.JSX.Element {
   const billWs = workspaces.filter((w) => w.type === 'bills').sort((a, b) => a.sortOrder - b.sortOrder)
   const investWs = workspaces.filter((w) => w.type === 'investments').sort((a, b) => a.sortOrder - b.sortOrder)
   const incomeWs = workspaces.filter((w) => w.type === 'income').sort((a, b) => a.sortOrder - b.sortOrder)
+  const fgtsWs = workspaces.filter((w) => w.type === 'fgts').sort((a, b) => a.sortOrder - b.sortOrder)
 
   const renderWorkspaceGroup = (title: string, items: Workspace[]): React.JSX.Element => (
     <div className="mb-6">
@@ -178,6 +179,7 @@ export function WorkspaceManager(): React.JSX.Element {
       {renderWorkspaceGroup('Contas Mensais', billWs)}
       {renderWorkspaceGroup('Investimentos', investWs)}
       {renderWorkspaceGroup('Receitas', incomeWs)}
+      {renderWorkspaceGroup('FGTS', fgtsWs)}
 
       <ConfirmDialog
         open={!!deleteTarget}
