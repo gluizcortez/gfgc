@@ -71,7 +71,7 @@ export function loadData(): object {
   }
 }
 
-export function saveData(data: object): void {
+export function saveData(data: object): boolean {
   const paths = getPaths()
   try {
     if (!existsSync(paths.dataDir)) {
@@ -79,7 +79,9 @@ export function saveData(data: object): void {
     }
     writeFileSync(paths.tempFile, JSON.stringify(data, null, 2), 'utf-8')
     renameSync(paths.tempFile, paths.dataFile)
+    return true
   } catch (err) {
     console.error('Failed to save data:', err)
+    return false
   }
 }

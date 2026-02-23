@@ -1,6 +1,6 @@
 import { Receipt, TrendingUp, Target, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
-import { calculateBillsTotals } from '@/lib/calculations'
+import { calculateBillsTotals, calculateOverallGoalProgress } from '@/lib/calculations'
 import type { BillEntry, Investment, InvestmentTransaction, Goal } from '@/types/models'
 
 interface SummaryCardsProps {
@@ -21,8 +21,7 @@ export function SummaryCards({ bills, investments, monthTransactions, goals }: S
 
   const onTrackGoals = goals.filter((g) => {
     if (g.contributions.length === 0) return false
-    const last = g.contributions[g.contributions.length - 1]
-    return last.actualAmount >= last.targetAmount
+    return calculateOverallGoalProgress(g).status !== 'below'
   })
 
   const cards = [

@@ -355,8 +355,8 @@ export function DashboardPage(): React.JSX.Element {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ExpenseTrendChart billRecords={billRecords} currentMonth={month} />
-            <CategoryTrendChart billRecords={billRecords} categories={categories} currentMonth={month} />
+            <ExpenseTrendChart billRecords={filteredBillRecords} currentMonth={month} />
+            <CategoryTrendChart billRecords={filteredBillRecords} categories={categories} currentMonth={month} />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">

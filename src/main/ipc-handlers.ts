@@ -27,8 +27,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC.DATA_SAVE, (_event, data: object) => {
-    saveData(data)
-    return { success: true }
+    const success = saveData(data)
+    return { success }
   })
 
   ipcMain.handle(IPC.DATA_EXPORT, async (_event, data: object) => {
