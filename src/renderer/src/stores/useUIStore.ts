@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppSection, EntityId } from '@/types/models'
+import type { AppSection, BillEntry, EntityId } from '@/types/models'
 import { getCurrentMonthKey } from '@/lib/formatters'
 
 interface Notification {
@@ -37,6 +37,10 @@ interface UIState {
   // Income view state
   activeIncomeWorkspaceId: EntityId | null
 
+  // Clipboard for copy/paste bills
+  clipboardBill: Omit<BillEntry, 'id'> | null
+  setCopiedBill: (bill: Omit<BillEntry, 'id'> | null) => void
+
   setActiveSection: (section: AppSection) => void
   toggleSidebar: () => void
   openModal: (modal: string, data?: unknown) => void
@@ -71,6 +75,7 @@ export const useUIStore = create<UIState>()((set) => ({
   activeInvestmentsMonth: getCurrentMonthKey(),
   activeFGTSWorkspaceId: null,
   activeIncomeWorkspaceId: null,
+  clipboardBill: null,
 
   setActiveSection: (section) => set({ activeSection: section }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
@@ -92,6 +97,8 @@ export const useUIStore = create<UIState>()((set) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
   setPendingUpdate: (update) => set({ pendingUpdate: update }),
+
+  setCopiedBill: (bill) => set({ clipboardBill: bill }),
 
   setActiveBillsWorkspace: (id) => set({ activeBillsWorkspaceId: id }),
   setActiveBillsMonth: (month) => set({ activeBillsMonth: month }),

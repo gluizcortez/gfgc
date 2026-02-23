@@ -14,6 +14,7 @@ import { MONTH_NAMES_PT } from '@/lib/constants'
 export function AnnualSummaryPage(): React.JSX.Element {
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('all')
 
   const billRecords = useBillsStore((s) => s.monthlyRecords)
   const categories = useSettingsStore((s) => s.settings.categories)
@@ -22,26 +23,31 @@ export function AnnualSummaryPage(): React.JSX.Element {
 
   const months = useMemo(() => getYearMonths(year), [year])
 
+  const filteredRecords = useMemo(() => {
+    if (selectedWorkspaceId === 'all') return billRecords
+    return billRecords.filter((r) => r.workspaceId === selectedWorkspaceId)
+  }, [billRecords, selectedWorkspaceId])
+
   const monthlyData = useMemo(() => {
     return months.map((monthKey, index) => {
-      const bills = billRecords
+      const bills = filteredRecords
         .filter((r) => r.monthKey === monthKey)
         .flatMap((r) => r.bills)
       const total = bills.reduce((sum, b) => sum + b.value, 0)
       const paid = bills.filter((b) => b.status === 'paid').reduce((sum, b) => sum + b.value, 0)
       return { monthKey, label: MONTH_NAMES_PT[index].substring(0, 3), total, paid, count: bills.length }
     })
-  }, [months, billRecords])
+  }, [months, filteredRecords])
 
   const yearTotal = monthlyData.reduce((sum, m) => sum + m.total, 0)
   const yearPaid = monthlyData.reduce((sum, m) => sum + m.paid, 0)
   const avgMonthly = yearTotal / 12
 
   const yearBills = useMemo(() => {
-    return billRecords
+    return filteredRecords
       .filter((r) => months.includes(r.monthKey))
       .flatMap((r) => r.bills)
-  }, [billRecords, months])
+  }, [filteredRecords, months])
 
   const categoryTotals = useMemo(() => getCategoryTotals(yearBills), [yearBills])
 
@@ -88,6 +94,16 @@ export function AnnualSummaryPage(): React.JSX.Element {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Resumo Anual</h1>
         <div className="flex items-center gap-2">
+          <select
+            value={selectedWorkspaceId}
+            onChange={(e) => setSelectedWorkspaceId(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium focus:border-primary-500 focus:outline-none"
+          >
+            <option value="all">Todas as abas</option>
+            {billWorkspaces.map((ws) => (
+              <option key={ws.id} value={ws.id}>{ws.name}</option>
+            ))}
+          </select>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}

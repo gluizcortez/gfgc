@@ -62,6 +62,8 @@ export function BillFormModal({
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
+    const isEditing = !!initialData && !isPaste
+    const wasPaid = isEditing && initialData!.status === 'paid'
     onSave(
       {
         billId: initialData?.billId || '',
@@ -69,7 +71,9 @@ export function BillFormModal({
         value,
         dueDate,
         categoryId,
-        status: initialData?.status === 'paid' ? 'paid' : 'pending',
+        status: wasPaid ? 'paid' : 'pending',
+        // Preserve paidDate explicitly so Object.assign doesn't rely on it already being there
+        paidDate: wasPaid ? initialData!.paidDate : undefined,
         notes,
         customFields: initialData?.customFields || {},
         attachments
@@ -79,8 +83,10 @@ export function BillFormModal({
     onClose()
   }
 
+  const isPaste = initialData?.id === '__paste__'
+
   return (
-    <Modal open={open} onClose={onClose} title={initialData ? 'Editar Conta' : 'Nova Conta'}>
+    <Modal open={open} onClose={onClose} title={initialData && !isPaste ? 'Editar Conta' : isPaste ? 'Colar Conta' : 'Nova Conta'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Nome</label>
@@ -121,7 +127,7 @@ export function BillFormModal({
           </select>
         </div>
 
-        {!initialData && (
+        {(!initialData || isPaste) && (
           <div className="rounded-lg border border-gray-200 p-3">
             <label className="flex items-center gap-2">
               <input
@@ -166,7 +172,7 @@ export function BillFormModal({
 
         <div className="flex items-center justify-between pt-2">
           <div>
-            {initialData && onToggleStatus && (() => {
+            {initialData && !isPaste && onToggleStatus && (() => {
               const effective = getEffectiveStatus(initialData)
               const isPaid = effective === 'paid'
               return (
@@ -201,7 +207,7 @@ export function BillFormModal({
               disabled={value <= 0}
               className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {initialData ? 'Salvar' : 'Adicionar'}
+              {initialData && !isPaste ? 'Salvar' : 'Adicionar'}
             </button>
           </div>
         </div>

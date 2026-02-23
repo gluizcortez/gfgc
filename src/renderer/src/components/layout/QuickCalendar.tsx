@@ -21,13 +21,18 @@ export function QuickCalendar(): React.JSX.Element {
   const [year, month] = monthKey.split('-').map(Number)
 
   const bills = useMemo(() => {
+    // Load ALL records for the selected workspace, then filter by actual dueDate month
     const records = monthlyRecords.filter((r) => {
-      if (r.monthKey !== monthKey) return false
       if (selectedWorkspaceId !== 'all' && r.workspaceId !== selectedWorkspaceId) return false
       return true
     })
-    return records.flatMap((r) => r.bills)
-  }, [monthlyRecords, monthKey, selectedWorkspaceId])
+    const allBills = records.flatMap((r) => r.bills)
+    // Only show bills whose dueDate actually falls in the displayed month
+    return allBills.filter((bill) => {
+      const [billYear, billMonth] = bill.dueDate.split('-').map(Number)
+      return billYear === year && billMonth === month
+    })
+  }, [monthlyRecords, monthKey, selectedWorkspaceId, year, month])
 
   const calendarData = useMemo(() => {
     const firstDay = new Date(year, month - 1, 1).getDay()

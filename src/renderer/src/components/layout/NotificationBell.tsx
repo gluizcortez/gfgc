@@ -19,6 +19,8 @@ interface BillAlert {
 
 export function NotificationBell(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
+  const [seenAlertIds, setSeenAlertIds] = useState<Set<string>>(new Set())
+  const [updateSeen, setUpdateSeen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
@@ -87,6 +89,21 @@ export function NotificationBell(): React.JSX.Element {
     return result
   }, [monthlyRecords, workspaces, currentMonth])
 
+  // Reset seen state when pendingUpdate version changes (new update available)
+  useEffect(() => {
+    setUpdateSeen(false)
+  }, [pendingUpdate?.version])
+
+  // Prune seenAlertIds to only keep IDs that are still active alerts
+  // Prevents the Set from growing indefinitely as bills get paid/resolved
+  useEffect(() => {
+    setSeenAlertIds((prev) => {
+      const activeIds = new Set(alerts.map((a) => a.id))
+      const pruned = new Set([...prev].filter((id) => activeIds.has(id)))
+      return pruned.size === prev.size ? prev : pruned
+    })
+  }, [alerts])
+
   // Click outside to close
   useEffect(() => {
     const handler = (e: MouseEvent): void => {
@@ -105,8 +122,20 @@ export function NotificationBell(): React.JSX.Element {
     setIsOpen(false)
   }
 
+  const handleBellClick = (): void => {
+    if (!isOpen) {
+      // Mark all current alerts as seen when opening
+      setSeenAlertIds(new Set(alerts.map((a) => a.id)))
+      if (pendingUpdate) setUpdateSeen(true)
+    }
+    setIsOpen(!isOpen)
+  }
+
   const overdueCount = alerts.filter((a) => a.type === 'overdue').length
-  const totalCount = alerts.length + (pendingUpdate ? 1 : 0)
+  const unseenAlerts = alerts.filter((a) => !seenAlertIds.has(a.id))
+  const hasUnseenUpdate = pendingUpdate && !updateSeen
+  const badgeCount = unseenAlerts.length + (hasUnseenUpdate ? 1 : 0)
+  const hasUnseenOverdue = unseenAlerts.some((a) => a.type === 'overdue')
 
   const getAlertIcon = (type: BillAlert['type']) => {
     switch (type) {
@@ -135,7 +164,7 @@ export function NotificationBell(): React.JSX.Element {
   return (
     <div ref={containerRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleBellClick}
         className={clsx(
           'relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
           isOpen
@@ -144,14 +173,14 @@ export function NotificationBell(): React.JSX.Element {
         )}
       >
         <Bell size={18} />
-        {totalCount > 0 && (
+        {badgeCount > 0 && (
           <span
             className={clsx(
               'absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white',
-              overdueCount > 0 ? 'bg-red-500' : 'bg-amber-500'
+              hasUnseenOverdue ? 'bg-red-500' : 'bg-amber-500'
             )}
           >
-            {totalCount}
+            {badgeCount}
           </span>
         )}
       </button>
@@ -161,9 +190,9 @@ export function NotificationBell(): React.JSX.Element {
           <div className="border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">Notificações</h3>
             <p className="text-xs text-gray-400">
-              {totalCount === 0
+              {alerts.length === 0 && !pendingUpdate
                 ? 'Nenhuma pendência no momento'
-                : `${totalCount} alerta(s) para o mês atual`}
+                : `${alerts.length + (pendingUpdate ? 1 : 0)} alerta(s) para o mês atual`}
             </p>
           </div>
 

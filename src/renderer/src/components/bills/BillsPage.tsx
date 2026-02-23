@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Plus, Receipt, Copy, CalendarDays, List, FileDown } from 'lucide-react'
+import { Plus, Receipt, Copy, CalendarDays, List, FileDown, Repeat, ClipboardPaste } from 'lucide-react'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
 import { getNextMonthKey } from '@/lib/formatters'
 import { TabBar } from '@/components/layout/TabBar'
@@ -9,6 +9,7 @@ import { BillsTable } from './BillsTable'
 import { BillFormModal } from './BillFormModal'
 import { BudgetOverview } from './BudgetOverview'
 import { DuplicateMonthModal } from './DuplicateMonthModal'
+import { RecurringBillsModal } from './RecurringBillsModal'
 import { BillsCalendar } from './BillsCalendar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -32,6 +33,8 @@ export function BillsPage(): React.JSX.Element {
   const month = useUIStore((s) => s.activeBillsMonth)
   const setMonth = useUIStore((s) => s.setActiveBillsMonth)
   const addNotification = useUIStore((s) => s.addNotification)
+  const clipboardBill = useUIStore((s) => s.clipboardBill)
+  const setCopiedBill = useUIStore((s) => s.setCopiedBill)
 
   const allBills = useBillsStore((s) => s.bills)
   const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
@@ -45,6 +48,7 @@ export function BillsPage(): React.JSX.Element {
   const [editingEntry, setEditingEntry] = useState<BillEntry | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [showRecurringModal, setShowRecurringModal] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
 
   const effectiveId = activeId || workspaces[0]?.id || null
@@ -97,7 +101,9 @@ export function BillsPage(): React.JSX.Element {
   const handleSaveBill = (data: Omit<BillEntry, 'id'>, recurrenceMonths?: number): void => {
     if (!effectiveId) return
 
-    if (editingEntry) {
+    const isPaste = editingEntry?.id === '__paste__'
+
+    if (editingEntry && !isPaste) {
       if (currentRecord) {
         updateBillEntry(currentRecord.id, editingEntry.id, data)
         addNotification('Conta atualizada', 'success')
@@ -131,6 +137,19 @@ export function BillsPage(): React.JSX.Element {
       }
     }
     setEditingEntry(null)
+  }
+
+  const handleCopyBill = (entry: BillEntry): void => {
+    const { id: _id, ...data } = entry
+    setCopiedBill({ ...data, status: 'pending', paidDate: undefined, attachments: [] })
+    addNotification('Conta copiada — clique em Colar para adicionar neste ou em outro mês', 'info')
+  }
+
+  const handlePasteBill = (): void => {
+    if (!clipboardBill || !effectiveId) return
+    // Create a fake entry to pre-fill the form (without real id)
+    setEditingEntry({ id: '__paste__', ...clipboardBill } as BillEntry)
+    setShowForm(true)
   }
 
   const handleDeleteBill = (): void => {
@@ -227,6 +246,36 @@ export function BillsPage(): React.JSX.Element {
                 </button>
               </SimpleTooltip>
             )}
+            <SimpleTooltip label="Gerenciar templates de contas recorrentes">
+              <button
+                onClick={() => setShowRecurringModal(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                <Repeat size={16} />
+                Recorrentes
+              </button>
+            </SimpleTooltip>
+            {clipboardBill && (
+              <div className="flex items-center rounded-lg border border-blue-200 bg-blue-50 overflow-hidden">
+                <SimpleTooltip label={`Colar "${clipboardBill.name}" neste mês — abre formulário pré-preenchido`}>
+                  <button
+                    onClick={handlePasteBill}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                  >
+                    <ClipboardPaste size={16} />
+                    Colar
+                  </button>
+                </SimpleTooltip>
+                <SimpleTooltip label="Limpar área de transferência">
+                  <button
+                    onClick={() => setCopiedBill(null)}
+                    className="px-2 py-2 text-blue-400 hover:bg-blue-100 hover:text-blue-600 border-l border-blue-200"
+                  >
+                    <Plus size={14} className="rotate-45" />
+                  </button>
+                </SimpleTooltip>
+              </div>
+            )}
             <SimpleTooltip label="Copiar todas as contas deste mês para outro mês">
               <button
                 onClick={() => setShowDuplicateModal(true)}
@@ -281,6 +330,7 @@ export function BillsPage(): React.JSX.Element {
             }}
             onDelete={(id) => setDeleteTarget(id)}
             onToggleStatus={handleToggleStatus}
+            onCopy={handleCopyBill}
           />
         )}
       </div>
@@ -295,6 +345,14 @@ export function BillsPage(): React.JSX.Element {
         onToggleStatus={handleToggleStatus}
         initialData={editingEntry}
       />
+
+      {effectiveId && (
+        <RecurringBillsModal
+          open={showRecurringModal}
+          onClose={() => setShowRecurringModal(false)}
+          workspaceId={effectiveId}
+        />
+      )}
 
       {effectiveId && (
         <DuplicateMonthModal

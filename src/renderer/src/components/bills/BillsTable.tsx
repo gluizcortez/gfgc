@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Trash2, CircleCheck, Undo2 } from 'lucide-react'
+import { Pencil, Trash2, CircleCheck, Undo2, Clipboard } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { getEffectiveStatus } from '@/lib/billStatus'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -13,13 +13,15 @@ interface BillsTableProps {
   onEdit: (entry: BillEntry) => void
   onDelete: (entryId: string) => void
   onToggleStatus: (entryId: string, newStatus: BillStatus) => void
+  onCopy: (entry: BillEntry) => void
 }
 
 export function BillsTable({
   bills,
   onEdit,
   onDelete,
-  onToggleStatus
+  onToggleStatus,
+  onCopy
 }: BillsTableProps): React.JSX.Element {
   const categories = useSettingsStore((s) => s.settings.categories)
   const [payTarget, setPayTarget] = useState<BillEntry | null>(null)
@@ -111,6 +113,14 @@ export function BillsTable({
                           </button>
                         </SimpleTooltip>
                       )}
+                      <SimpleTooltip label="Copiar conta para área de transferência">
+                        <button
+                          onClick={() => onCopy(entry)}
+                          className="rounded-md p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500"
+                        >
+                          <Clipboard size={15} />
+                        </button>
+                      </SimpleTooltip>
                       <SimpleTooltip label="Editar conta">
                         <button
                           onClick={() => onEdit(entry)}

@@ -178,8 +178,13 @@ export const useBillsStore = create<BillsState>()(
         )
         if (!sourceRecord || sourceRecord.bills.length === 0) return
 
+        const [tYear, tMonth] = targetMonth.split('-').map(Number)
+        const maxDayInTarget = new Date(tYear, tMonth, 0).getDate()
+
         const clonedBills: BillEntry[] = sourceRecord.bills.map((bill) => {
-          const newDueDate = bill.dueDate.replace(sourceMonth, targetMonth)
+          const day = Number(bill.dueDate.split('-')[2])
+          const adjustedDay = Math.min(day, maxDayInTarget)
+          const newDueDate = `${targetMonth}-${String(adjustedDay).padStart(2, '0')}`
           return {
             ...bill,
             id: nanoid(),
