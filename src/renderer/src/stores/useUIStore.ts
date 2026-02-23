@@ -12,6 +12,7 @@ interface Notification {
 interface PendingUpdate {
   version: string
   assets: { name: string; url: string; size: number }[]
+  releaseNotes: string
 }
 
 interface UIState {

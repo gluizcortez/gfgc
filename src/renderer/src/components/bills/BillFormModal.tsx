@@ -60,6 +60,8 @@ export function BillFormModal({
     }
   }, [initialData, open])
 
+  const isPaste = initialData?.id === '__paste__'
+
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
     const isEditing = !!initialData && !isPaste
@@ -82,8 +84,6 @@ export function BillFormModal({
     )
     onClose()
   }
-
-  const isPaste = initialData?.id === '__paste__'
 
   return (
     <Modal open={open} onClose={onClose} title={initialData && !isPaste ? 'Editar Conta' : isPaste ? 'Colar Conta' : 'Nova Conta'}>

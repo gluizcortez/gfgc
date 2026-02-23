@@ -164,6 +164,17 @@ export interface IncomeEntry {
   isRecurring: boolean
 }
 
+// ─── Net Worth Tabs / Abas de Patrimônio ─────────────────
+
+export interface NetWorthTab {
+  id: EntityId
+  name: string
+  investmentWorkspaceIds: EntityId[]
+  fgtsWorkspaceIds: EntityId[]
+  sortOrder: number
+  createdAt: string
+}
+
 // ─── Categories & Settings ───────────────────────────────
 
 export interface Category {
@@ -215,4 +226,5 @@ export interface AppData {
   goals: Goal[]
   fgtsRecords: FGTSRecord[]
   incomeEntries: IncomeEntry[]
+  netWorthTabs?: NetWorthTab[]
 }

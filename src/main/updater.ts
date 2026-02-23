@@ -15,6 +15,7 @@ export interface UpdateCheckResult {
   currentVersion: string
   latestVersion: string
   assets: UpdateAsset[]
+  releaseNotes: string
 }
 
 function compareVersions(a: string, b: string): number {
@@ -51,8 +52,9 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
   }))
 
   const hasUpdate = compareVersions(currentVersion, latestVersion) < 0
+  const releaseNotes: string = release.body || ''
 
-  return { hasUpdate, currentVersion, latestVersion, assets }
+  return { hasUpdate, currentVersion, latestVersion, assets, releaseNotes }
 }
 
 export async function downloadUpdate(url: string, filename: string): Promise<{ success: boolean; filePath?: string }> {

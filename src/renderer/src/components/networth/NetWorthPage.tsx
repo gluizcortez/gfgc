@@ -1,20 +1,32 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Wallet } from 'lucide-react'
+import { Wallet, Pencil, Plus, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { NetWorthEvolutionChart } from './NetWorthEvolutionChart'
 import { AssetBreakdownCards } from './AssetBreakdownCards'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { Modal } from '@/components/shared/Modal'
 import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import { useFGTSStore } from '@/stores/useFGTSStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useNetWorthTabsStore } from '@/stores/useNetWorthTabsStore'
 import { calculateNetWorth } from '@/lib/calculations'
 import { formatCurrency, getCurrentMonthKey } from '@/lib/formatters'
+import type { EntityId } from '@/types/models'
+
+interface TabModalState {
+  open: boolean
+  editId: string | null
+}
 
 export function NetWorthPage(): React.JSX.Element {
   const investments = useInvestmentsStore((s) => s.investments)
   const transactions = useInvestmentsStore((s) => s.transactions)
   const fgtsRecords = useFGTSStore((s) => s.records)
   const workspaces = useSettingsStore((s) => s.workspaces)
+  const customTabs = useNetWorthTabsStore((s) => s.tabs)
+  const addTab = useNetWorthTabsStore((s) => s.addTab)
+  const updateTab = useNetWorthTabsStore((s) => s.updateTab)
+  const deleteTab = useNetWorthTabsStore((s) => s.deleteTab)
 
   const investmentWorkspaces = useMemo(
     () => workspaces.filter((w) => w.type === 'investments'),
@@ -25,49 +37,97 @@ export function NetWorthPage(): React.JSX.Element {
     [workspaces]
   )
 
-  // 'all' | workspace id
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeTabId, setActiveTabId] = useState<string>('all')
+  const [tabModal, setTabModal] = useState<TabModalState>({ open: false, editId: null })
+  const [tabName, setTabName] = useState('')
+  const [tabInvWsIds, setTabInvWsIds] = useState<EntityId[]>([])
+  const [tabFgtsWsIds, setTabFgtsWsIds] = useState<EntityId[]>([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const tabs = useMemo(() => {
-    const result: { id: string; label: string; type: 'all' | 'investments' | 'fgts' }[] = [
-      { id: 'all', label: 'Todos', type: 'all' }
-    ]
-    for (const ws of investmentWorkspaces) {
-      result.push({ id: ws.id, label: ws.name, type: 'investments' })
-    }
-    for (const ws of fgtsWorkspaces) {
-      result.push({ id: ws.id, label: `FGTS · ${ws.name}`, type: 'fgts' })
-    }
-    return result
-  }, [investmentWorkspaces, fgtsWorkspaces])
-
-  // Reset to 'all' if the selected workspace tab no longer exists (was deleted)
+  // Reset to 'all' if the active custom tab is deleted
   useEffect(() => {
-    if (!tabs.find((t) => t.id === activeTab)) {
-      setActiveTab('all')
+    if (activeTabId !== 'all' && !customTabs.find((t) => t.id === activeTabId)) {
+      setActiveTabId('all')
     }
-  }, [tabs, activeTab])
+  }, [customTabs, activeTabId])
 
-  const activeTabInfo = tabs.find((t) => t.id === activeTab) ?? tabs[0]
+  const openCreateModal = (): void => {
+    setTabName('')
+    setTabInvWsIds([])
+    setTabFgtsWsIds([])
+    setShowDeleteConfirm(false)
+    setTabModal({ open: true, editId: null })
+  }
+
+  const openEditModal = (id: string): void => {
+    const tab = customTabs.find((t) => t.id === id)
+    if (!tab) return
+    setTabName(tab.name)
+    setTabInvWsIds([...tab.investmentWorkspaceIds])
+    setTabFgtsWsIds([...tab.fgtsWorkspaceIds])
+    setShowDeleteConfirm(false)
+    setTabModal({ open: true, editId: id })
+  }
+
+  const closeModal = (): void => {
+    setTabModal({ open: false, editId: null })
+    setShowDeleteConfirm(false)
+  }
+
+  const handleSaveTab = (): void => {
+    if (!tabName.trim()) return
+    if (tabModal.editId) {
+      updateTab(tabModal.editId, {
+        name: tabName.trim(),
+        investmentWorkspaceIds: tabInvWsIds,
+        fgtsWorkspaceIds: tabFgtsWsIds
+      })
+    } else {
+      const newId = addTab({
+        name: tabName.trim(),
+        investmentWorkspaceIds: tabInvWsIds,
+        fgtsWorkspaceIds: tabFgtsWsIds
+      })
+      setActiveTabId(newId)
+    }
+    closeModal()
+  }
+
+  const handleDeleteTab = (): void => {
+    if (!tabModal.editId) return
+    deleteTab(tabModal.editId)
+    closeModal()
+  }
+
+  const toggleInvWs = (id: EntityId): void => {
+    setTabInvWsIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const toggleFgtsWs = (id: EntityId): void => {
+    setTabFgtsWsIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const activeCustomTab = customTabs.find((t) => t.id === activeTabId) ?? null
 
   const filteredInvestments = useMemo(() => {
     const active = investments.filter((i) => i.isActive)
-    if (activeTabInfo.type === 'fgts') return []
-    if (activeTabInfo.type === 'investments') return active.filter((i) => i.workspaceId === activeTab)
-    return active
-  }, [investments, activeTab, activeTabInfo])
+    if (!activeCustomTab) return active
+    return active.filter((i) => activeCustomTab.investmentWorkspaceIds.includes(i.workspaceId))
+  }, [investments, activeCustomTab])
 
   const filteredTransactions = useMemo(() => {
-    if (activeTabInfo.type === 'fgts') return []
-    if (activeTabInfo.type === 'investments') return transactions.filter((t) => t.workspaceId === activeTab)
-    return transactions
-  }, [transactions, activeTab, activeTabInfo])
+    if (!activeCustomTab) return transactions
+    return transactions.filter((t) => activeCustomTab.investmentWorkspaceIds.includes(t.workspaceId))
+  }, [transactions, activeCustomTab])
 
   const filteredFgtsRecords = useMemo(() => {
-    if (activeTabInfo.type === 'investments') return []
-    if (activeTabInfo.type === 'fgts') return fgtsRecords.filter((r) => r.workspaceId === activeTab)
-    return fgtsRecords
-  }, [fgtsRecords, activeTab, activeTabInfo])
+    if (!activeCustomTab) return fgtsRecords
+    return fgtsRecords.filter((r) => activeCustomTab.fgtsWorkspaceIds.includes(r.workspaceId))
+  }, [fgtsRecords, activeCustomTab])
 
   const netWorth = useMemo(
     () => calculateNetWorth(filteredInvestments, filteredFgtsRecords),
@@ -104,24 +164,54 @@ export function NetWorthPage(): React.JSX.Element {
   return (
     <div className="flex h-full flex-col">
       {/* Tab bar */}
-      {tabs.length > 1 && (
-        <div className="flex items-center gap-1 border-b border-gray-200 bg-white px-4 pt-1">
-          {tabs.map((tab) => (
+      <div className="flex items-center gap-1 border-b border-gray-200 bg-white px-4 pt-1">
+        {/* All tab */}
+        <button
+          onClick={() => setActiveTabId('all')}
+          className={clsx(
+            'shrink-0 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
+            activeTabId === 'all'
+              ? 'border-b-2 border-primary-600 text-primary-700'
+              : 'text-gray-500 hover:text-gray-800'
+          )}
+        >
+          Todos
+        </button>
+
+        {/* Custom tabs */}
+        {customTabs.map((tab) => (
+          <div key={tab.id} className="group relative flex shrink-0 items-center">
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setActiveTabId(tab.id)}
               className={clsx(
-                'shrink-0 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
-                activeTab === tab.id
+                'rounded-t-lg px-4 py-2.5 pr-7 text-sm font-medium transition-colors',
+                activeTabId === tab.id
                   ? 'border-b-2 border-primary-600 text-primary-700'
                   : 'text-gray-500 hover:text-gray-800'
               )}
             >
-              {tab.label}
+              {tab.name}
             </button>
-          ))}
-        </div>
-      )}
+            <button
+              onClick={(e) => { e.stopPropagation(); openEditModal(tab.id) }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-300 opacity-0 transition-opacity hover:text-gray-600 group-hover:opacity-100"
+              title="Editar aba"
+            >
+              <Pencil size={11} />
+            </button>
+          </div>
+        ))}
+
+        {/* Add new tab button */}
+        <button
+          onClick={openCreateModal}
+          className="ml-1 flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+          title="Nova aba"
+        >
+          <Plus size={13} />
+          Nova Aba
+        </button>
+      </div>
 
       <div className="flex-1 overflow-auto p-6">
         <div className="mb-6">
@@ -168,6 +258,118 @@ export function NetWorthPage(): React.JSX.Element {
           </>
         )}
       </div>
+
+      {/* Tab create/edit modal */}
+      <Modal
+        open={tabModal.open}
+        onClose={closeModal}
+        title={tabModal.editId ? 'Editar Aba' : 'Nova Aba de Patrimônio'}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Nome da aba</label>
+            <input
+              type="text"
+              value={tabName}
+              onChange={(e) => setTabName(e.target.value)}
+              placeholder="Ex: Aposentadoria"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+              autoFocus
+            />
+          </div>
+
+          {investmentWorkspaces.length > 0 && (
+            <div>
+              <label className="mb-2 block text-xs font-medium text-gray-600">Investimentos</label>
+              <div className="space-y-1.5">
+                {investmentWorkspaces.map((ws) => (
+                  <label key={ws.id} className="flex cursor-pointer items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={tabInvWsIds.includes(ws.id)}
+                      onChange={() => toggleInvWs(ws.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">{ws.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {fgtsWorkspaces.length > 0 && (
+            <div>
+              <label className="mb-2 block text-xs font-medium text-gray-600">FGTS</label>
+              <div className="space-y-1.5">
+                {fgtsWorkspaces.map((ws) => (
+                  <label key={ws.id} className="flex cursor-pointer items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={tabFgtsWsIds.includes(ws.id)}
+                      onChange={() => toggleFgtsWs(ws.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">{ws.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {investmentWorkspaces.length === 0 && fgtsWorkspaces.length === 0 && (
+            <p className="text-xs text-gray-400">Nenhum workspace de investimentos ou FGTS cadastrado.</p>
+          )}
+
+          {tabModal.editId && showDeleteConfirm && (
+            <div className="rounded-lg bg-red-50 p-3">
+              <p className="mb-2 text-sm text-red-700">Tem certeza que deseja excluir esta aba?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteTab}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                >
+                  Excluir
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {tabModal.editId && !showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700"
+              >
+                <Trash2 size={13} />
+                Excluir aba
+              </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={closeModal}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveTab}
+                disabled={!tabName.trim()}
+                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Download, Upload, Sun, Moon, HardDrive, RefreshCw, Trash2, Loader2 } from 'lucide-react'
+import { Download, Upload, Sun, Moon, HardDrive, RefreshCw, Trash2, Loader2, Sparkles } from 'lucide-react'
 import { CategoriesManager } from './CategoriesManager'
 import { WorkspaceManager } from './WorkspaceManager'
 import { Modal } from '@/components/shared/Modal'
@@ -10,6 +10,7 @@ import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import { useGoalsStore } from '@/stores/useGoalsStore'
 import { useFGTSStore } from '@/stores/useFGTSStore'
 import { useIncomeStore } from '@/stores/useIncomeStore'
+import { useNetWorthTabsStore } from '@/stores/useNetWorthTabsStore'
 import { DEFAULT_CATEGORIES } from '@/lib/constants'
 import type { AppData, AppSettings } from '@/types/models'
 import type { UpdateAsset } from '../../../preload/index.d'
@@ -21,7 +22,8 @@ function collectAppData(): AppData {
   const { goals } = useGoalsStore.getState()
   const { records: fgtsRecords } = useFGTSStore.getState()
   const { entries: incomeEntries } = useIncomeStore.getState()
-  return { version: 1, settings, workspaces, bills, monthlyBillRecords, investments, investmentTransactions, goals, fgtsRecords, incomeEntries }
+  const { tabs: netWorthTabs } = useNetWorthTabsStore.getState()
+  return { version: 1, settings, workspaces, bills, monthlyBillRecords, investments, investmentTransactions, goals, fgtsRecords, incomeEntries, netWorthTabs }
 }
 
 const CONFIRMATION_PHRASE = 'apagar a base de dados por completo'
@@ -49,6 +51,8 @@ export function SettingsPage(): React.JSX.Element {
   const [latestVersion, setLatestVersion] = useState('')
   const [updateAssets, setUpdateAssets] = useState<UpdateAsset[]>([])
   const [updateError, setUpdateError] = useState('')
+  const [releaseNotes, setReleaseNotes] = useState('')
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false)
 
   const pendingUpdate = useUIStore((s) => s.pendingUpdate)
 
@@ -61,6 +65,7 @@ export function SettingsPage(): React.JSX.Element {
     if (pendingUpdate && updateStatus === 'idle') {
       setLatestVersion(pendingUpdate.version)
       setUpdateAssets(pendingUpdate.assets)
+      setReleaseNotes(pendingUpdate.releaseNotes || '')
       setUpdateStatus('update_available')
     }
   }, [pendingUpdate])
@@ -72,6 +77,7 @@ export function SettingsPage(): React.JSX.Element {
       const result = await window.api.checkForUpdate()
       setLatestVersion(result.latestVersion)
       setUpdateAssets(result.assets)
+      setReleaseNotes(result.releaseNotes || '')
       if (result.hasUpdate) {
         setUpdateStatus('update_available')
       } else {
@@ -136,6 +142,9 @@ export function SettingsPage(): React.JSX.Element {
     if (data.incomeEntries) {
       useIncomeStore.getState().hydrate(data.incomeEntries)
     }
+    if (data.netWorthTabs) {
+      useNetWorthTabsStore.getState().hydrate(data.netWorthTabs)
+    }
     addNotification('Dados importados com sucesso', 'success')
     setPendingImportData(null)
     setImportConfirmOpen(false)
@@ -162,6 +171,7 @@ export function SettingsPage(): React.JSX.Element {
     useGoalsStore.getState().hydrate([])
     useFGTSStore.getState().hydrate([])
     useIncomeStore.getState().hydrate([])
+    useNetWorthTabsStore.getState().hydrate([])
 
     setResetDialogOpen(false)
     setResetInput('')
@@ -229,7 +239,7 @@ export function SettingsPage(): React.JSX.Element {
                     Sua versão: v{appVersion} → v{latestVersion}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {macAsset && (
                     <button
                       onClick={() => handleDownloadUpdate(macAsset)}
@@ -246,6 +256,15 @@ export function SettingsPage(): React.JSX.Element {
                     >
                       <Download size={16} />
                       Baixar para Windows (.exe)
+                    </button>
+                  )}
+                  {releaseNotes && (
+                    <button
+                      onClick={() => setShowReleaseNotes(true)}
+                      className="flex items-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                    >
+                      <Sparkles size={16} />
+                      O que tem de novo?
                     </button>
                   )}
                 </div>
@@ -502,6 +521,32 @@ export function SettingsPage(): React.JSX.Element {
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
             >
               Importar e Substituir
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Release Notes Modal */}
+      <Modal
+        open={showReleaseNotes}
+        onClose={() => setShowReleaseNotes(false)}
+        title="O que tem de novo?"
+      >
+        <div className="space-y-3">
+          <div className="rounded-lg bg-blue-50 p-3">
+            <p className="text-xs font-medium text-blue-700">Versão v{latestVersion}</p>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
+              {releaseNotes || 'Sem notas de release disponíveis.'}
+            </pre>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowReleaseNotes(false)}
+              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              Fechar
             </button>
           </div>
         </div>

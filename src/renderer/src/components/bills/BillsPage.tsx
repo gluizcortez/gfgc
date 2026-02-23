@@ -110,12 +110,14 @@ export function BillsPage(): React.JSX.Element {
       }
     } else {
       if (recurrenceMonths && recurrenceMonths > 0) {
+        // For recurrence, first entry goes into the month matching its own dueDate
+        const firstMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
         const total = recurrenceMonths + 1
-        addBillEntry(effectiveId, month, {
+        addBillEntry(effectiveId, firstMonthKey, {
           ...data,
           name: `${data.name} (1/${total})`
         })
-        let futureMonth = month
+        let futureMonth = firstMonthKey
         const [, , dayStr] = data.dueDate.split('-')
         for (let i = 0; i < recurrenceMonths; i++) {
           futureMonth = getNextMonthKey(futureMonth)
@@ -132,7 +134,9 @@ export function BillsPage(): React.JSX.Element {
         }
         addNotification(`Conta adicionada para ${total} meses`, 'success')
       } else {
-        addBillEntry(effectiveId, month, data)
+        // Store the bill in the month that matches its actual dueDate, not the current view
+        const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
+        addBillEntry(effectiveId, billMonthKey, data)
         addNotification('Conta adicionada', 'success')
       }
     }

@@ -43,7 +43,8 @@ function App(): React.JSX.Element {
             if (result.hasUpdate) {
               setPendingUpdate({
                 version: result.latestVersion,
-                assets: result.assets || []
+                assets: result.assets || [],
+                releaseNotes: result.releaseNotes || ''
               })
               addNotification(
                 `Nova versão disponível: v${result.latestVersion}. Clique para atualizar.`,

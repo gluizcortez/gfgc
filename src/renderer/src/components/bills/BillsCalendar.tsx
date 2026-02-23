@@ -18,12 +18,13 @@ export function BillsCalendar({ bills, monthKey }: BillsCalendarProps): React.JS
     const today = new Date()
     const todayDay = today.getFullYear() === year && today.getMonth() + 1 === month ? today.getDate() : -1
 
-    // Group bills by day
+    // Group bills by day — only include bills whose dueDate falls in this calendar month
     const billsByDay = new Map<number, BillEntry[]>()
     for (const bill of bills) {
-      const day = parseInt(bill.dueDate.split('-')[2])
-      if (!billsByDay.has(day)) billsByDay.set(day, [])
-      billsByDay.get(day)!.push(bill)
+      const [billYear, billMonth, billDay] = bill.dueDate.split('-').map(Number)
+      if (billYear !== year || billMonth !== month) continue
+      if (!billsByDay.has(billDay)) billsByDay.set(billDay, [])
+      billsByDay.get(billDay)!.push(bill)
     }
 
     return { firstDay, daysInMonth, todayDay, billsByDay }

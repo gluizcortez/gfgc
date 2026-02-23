@@ -5,6 +5,7 @@ import { useInvestmentsStore } from '@/stores/useInvestmentsStore'
 import { useGoalsStore } from '@/stores/useGoalsStore'
 import { useFGTSStore } from '@/stores/useFGTSStore'
 import { useIncomeStore } from '@/stores/useIncomeStore'
+import { useNetWorthTabsStore } from '@/stores/useNetWorthTabsStore'
 import type { AppData } from '@/types/models'
 
 function collectAppData(): AppData {
@@ -14,6 +15,7 @@ function collectAppData(): AppData {
   const { goals } = useGoalsStore.getState()
   const { records: fgtsRecords } = useFGTSStore.getState()
   const { entries: incomeEntries } = useIncomeStore.getState()
+  const { tabs: netWorthTabs } = useNetWorthTabsStore.getState()
 
   return {
     version: 1,
@@ -25,7 +27,8 @@ function collectAppData(): AppData {
     investmentTransactions,
     goals,
     fgtsRecords,
-    incomeEntries
+    incomeEntries,
+    netWorthTabs
   }
 }
 
@@ -48,7 +51,8 @@ export function usePersistence(): void {
       useInvestmentsStore.subscribe(save),
       useGoalsStore.subscribe(save),
       useFGTSStore.subscribe(save),
-      useIncomeStore.subscribe(save)
+      useIncomeStore.subscribe(save),
+      useNetWorthTabsStore.subscribe(save)
     ]
 
     // Flush pending save immediately when window is closing
@@ -99,6 +103,9 @@ export async function loadAndHydrate(): Promise<void> {
     }
     if (raw.incomeEntries) {
       useIncomeStore.getState().hydrate(raw.incomeEntries)
+    }
+    if (raw.netWorthTabs) {
+      useNetWorthTabsStore.getState().hydrate(raw.netWorthTabs)
     }
   } catch (err) {
     console.error('Error loading data:', err)
