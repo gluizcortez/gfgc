@@ -10,7 +10,7 @@ import type { BillEntry, BillStatus, EntityId, Attachment } from '@/types/models
 interface BillFormModalProps {
   open: boolean
   onClose: () => void
-  onSave: (data: Omit<BillEntry, 'id'>, isRecurring?: boolean) => void
+  onSave: (data: Omit<BillEntry, 'id'>, recurrenceMonths?: number) => void
   onToggleStatus?: (entryId: string, newStatus: BillStatus) => void
   initialData?: BillEntry | null
 }
@@ -33,7 +33,8 @@ export function BillFormModal({
   const [dueDate, setDueDate] = useState('')
   const [categoryId, setCategoryId] = useState<EntityId>('')
   const [notes, setNotes] = useState('')
-  const [isRecurring, setIsRecurring] = useState(false)
+  const [hasRecurrence, setHasRecurrence] = useState(false)
+  const [recurrenceMonths, setRecurrenceMonths] = useState(1)
   const [attachments, setAttachments] = useState<Attachment[]>([])
 
   useEffect(() => {
@@ -44,7 +45,8 @@ export function BillFormModal({
       setDueDate(initialData.dueDate)
       setCategoryId(initialData.categoryId)
       setNotes(initialData.notes)
-      setIsRecurring(false)
+      setHasRecurrence(false)
+      setRecurrenceMonths(1)
       setAttachments(initialData.attachments || [])
     } else {
       setName('')
@@ -52,7 +54,8 @@ export function BillFormModal({
       setDueDate('')
       setCategoryId(categories[0]?.id || '')
       setNotes('')
-      setIsRecurring(false)
+      setHasRecurrence(false)
+      setRecurrenceMonths(1)
       setAttachments([])
     }
   }, [initialData, open])
@@ -77,7 +80,7 @@ export function BillFormModal({
         customFields: initialData?.customFields || {},
         attachments
       },
-      isRecurring || undefined
+      hasRecurrence ? recurrenceMonths : undefined
     )
     onClose()
   }
@@ -129,16 +132,25 @@ export function BillFormModal({
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
-                checked={isRecurring}
-                onChange={(e) => setIsRecurring(e.target.checked)}
+                checked={hasRecurrence}
+                onChange={(e) => setHasRecurrence(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm font-medium text-gray-700">Esta conta é recorrente (repete todo mês)</span>
+              <span className="text-sm font-medium text-gray-700">Repetir nos próximos meses</span>
             </label>
-            {isRecurring && (
-              <p className="mt-1.5 pl-6 text-xs text-gray-400">
-                Um template será criado. Gerencie em <strong>Recorrentes</strong> para pausar ou cancelar.
-              </p>
+            {hasRecurrence && (
+              <div className="mt-2 flex items-center gap-2 pl-6">
+                <span className="text-sm text-gray-500">Repetir por</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={recurrenceMonths}
+                  onChange={(e) => setRecurrenceMonths(Number(e.target.value))}
+                  className="w-16 rounded border border-gray-300 px-2 py-1 text-sm text-center focus:border-primary-500 focus:outline-none"
+                />
+                <span className="text-sm text-gray-500">meses além deste</span>
+              </div>
             )}
           </div>
         )}

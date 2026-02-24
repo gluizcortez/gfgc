@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBillsStore } from '@/stores/useBillsStore'
 import { useUIStore } from '@/stores/useUIStore'
-import { formatCurrency, formatDate, formatMonthYear } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatMonthYear, getNextMonthKey } from '@/lib/formatters'
 import type { BillEntry, BillStatus } from '@/types/models'
 
 export function BillsPage(): React.JSX.Element {
@@ -37,7 +37,6 @@ export function BillsPage(): React.JSX.Element {
 
   const allBills = useBillsStore((s) => s.bills)
   const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
-  const addBill = useBillsStore((s) => s.addBill)
   const addBillEntry = useBillsStore((s) => s.addBillEntry)
   const updateBillEntry = useBillsStore((s) => s.updateBillEntry)
   const deleteBillEntry = useBillsStore((s) => s.deleteBillEntry)
@@ -107,7 +106,7 @@ export function BillsPage(): React.JSX.Element {
     }
   }
 
-  const handleSaveBill = (data: Omit<BillEntry, 'id'>, isRecurring?: boolean): void => {
+  const handleSaveBill = (data: Omit<BillEntry, 'id'>, recurrenceMonths?: number): void => {
     if (!effectiveId) return
 
     const isPaste = editingEntry?.id === '__paste__'
@@ -117,27 +116,32 @@ export function BillsPage(): React.JSX.Element {
         updateBillEntry(currentRecord.id, editingEntry.id, data)
         addNotification('Conta atualizada', 'success')
       }
-    } else if (isRecurring) {
-      // Cria template + gera entrada do mês atual vinculada ao template
-      const dueDay = data.dueDate ? Number(data.dueDate.split('-')[2]) : 1
-      const templateId = addBill({
-        workspaceId: effectiveId,
-        name: data.name,
-        value: data.value,
-        dueDay,
-        categoryId: data.categoryId,
-        notes: data.notes,
-        isRecurring: true,
-        customFields: data.customFields
-      })
-      const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
-      addBillEntry(effectiveId, billMonthKey, { ...data, billId: templateId })
-      addNotification('Conta recorrente criada — gerencie em Recorrentes', 'success')
     } else {
-      // Entrada avulsa
-      const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
-      addBillEntry(effectiveId, billMonthKey, data)
-      addNotification('Conta adicionada', 'success')
+      if (recurrenceMonths && recurrenceMonths > 0) {
+        const firstMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
+        const total = recurrenceMonths + 1
+        addBillEntry(effectiveId, firstMonthKey, { ...data, name: `${data.name} (1/${total})` })
+        let futureMonth = firstMonthKey
+        const [, , dayStr] = data.dueDate.split('-')
+        for (let i = 0; i < recurrenceMonths; i++) {
+          futureMonth = getNextMonthKey(futureMonth)
+          const [fy, fm] = futureMonth.split('-')
+          const maxDay = new Date(Number(fy), Number(fm), 0).getDate()
+          const day = Math.min(Number(dayStr), maxDay)
+          addBillEntry(effectiveId, futureMonth, {
+            ...data,
+            name: `${data.name} (${i + 2}/${total})`,
+            dueDate: `${fy}-${fm}-${String(day).padStart(2, '0')}`,
+            status: 'pending',
+            paidDate: undefined
+          })
+        }
+        addNotification(`Conta adicionada para ${total} meses`, 'success')
+      } else {
+        const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
+        addBillEntry(effectiveId, billMonthKey, data)
+        addNotification('Conta adicionada', 'success')
+      }
     }
     setEditingEntry(null)
   }
@@ -249,7 +253,7 @@ export function BillsPage(): React.JSX.Element {
                 </button>
               </SimpleTooltip>
             )}
-            <SimpleTooltip label="Gerenciar templates de contas recorrentes">
+            <SimpleTooltip label="Ver e cancelar contas que repetem nos próximos meses">
               <button
                 onClick={() => setShowRecurringModal(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
