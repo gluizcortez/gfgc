@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Plus, Receipt, Copy, CalendarDays, List, FileDown, Repeat, ClipboardPaste } from 'lucide-react'
 import { SimpleTooltip } from '@/components/shared/SimpleTooltip'
-import { getNextMonthKey } from '@/lib/formatters'
 import { TabBar } from '@/components/layout/TabBar'
 import { MonthNavigator } from '@/components/layout/MonthNavigator'
 import { BillsSummary } from './BillsSummary'
@@ -38,6 +37,7 @@ export function BillsPage(): React.JSX.Element {
 
   const allBills = useBillsStore((s) => s.bills)
   const monthlyRecords = useBillsStore((s) => s.monthlyRecords)
+  const addBill = useBillsStore((s) => s.addBill)
   const addBillEntry = useBillsStore((s) => s.addBillEntry)
   const updateBillEntry = useBillsStore((s) => s.updateBillEntry)
   const deleteBillEntry = useBillsStore((s) => s.deleteBillEntry)
@@ -107,7 +107,7 @@ export function BillsPage(): React.JSX.Element {
     }
   }
 
-  const handleSaveBill = (data: Omit<BillEntry, 'id'>, recurrenceMonths?: number): void => {
+  const handleSaveBill = (data: Omit<BillEntry, 'id'>, isRecurring?: boolean): void => {
     if (!effectiveId) return
 
     const isPaste = editingEntry?.id === '__paste__'
@@ -117,37 +117,27 @@ export function BillsPage(): React.JSX.Element {
         updateBillEntry(currentRecord.id, editingEntry.id, data)
         addNotification('Conta atualizada', 'success')
       }
+    } else if (isRecurring) {
+      // Cria template + gera entrada do mês atual vinculada ao template
+      const dueDay = data.dueDate ? Number(data.dueDate.split('-')[2]) : 1
+      const templateId = addBill({
+        workspaceId: effectiveId,
+        name: data.name,
+        value: data.value,
+        dueDay,
+        categoryId: data.categoryId,
+        notes: data.notes,
+        isRecurring: true,
+        customFields: data.customFields
+      })
+      const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
+      addBillEntry(effectiveId, billMonthKey, { ...data, billId: templateId })
+      addNotification('Conta recorrente criada — gerencie em Recorrentes', 'success')
     } else {
-      if (recurrenceMonths && recurrenceMonths > 0) {
-        // For recurrence, first entry goes into the month matching its own dueDate
-        const firstMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
-        const total = recurrenceMonths + 1
-        addBillEntry(effectiveId, firstMonthKey, {
-          ...data,
-          name: `${data.name} (1/${total})`
-        })
-        let futureMonth = firstMonthKey
-        const [, , dayStr] = data.dueDate.split('-')
-        for (let i = 0; i < recurrenceMonths; i++) {
-          futureMonth = getNextMonthKey(futureMonth)
-          const [fy, fm] = futureMonth.split('-')
-          const maxDay = new Date(Number(fy), Number(fm), 0).getDate()
-          const day = Math.min(Number(dayStr), maxDay)
-          addBillEntry(effectiveId, futureMonth, {
-            ...data,
-            name: `${data.name} (${i + 2}/${total})`,
-            dueDate: `${fy}-${fm}-${String(day).padStart(2, '0')}`,
-            status: 'pending',
-            paidDate: undefined
-          })
-        }
-        addNotification(`Conta adicionada para ${total} meses`, 'success')
-      } else {
-        // Store the bill in the month that matches its actual dueDate, not the current view
-        const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
-        addBillEntry(effectiveId, billMonthKey, data)
-        addNotification('Conta adicionada', 'success')
-      }
+      // Entrada avulsa
+      const billMonthKey = data.dueDate ? data.dueDate.substring(0, 7) : month
+      addBillEntry(effectiveId, billMonthKey, data)
+      addNotification('Conta adicionada', 'success')
     }
     setEditingEntry(null)
   }

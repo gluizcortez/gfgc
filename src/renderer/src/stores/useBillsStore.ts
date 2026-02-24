@@ -33,6 +33,9 @@ interface BillsState {
   // Cancel all future entries for a template from a given month onwards
   cancelFutureEntries: (billId: EntityId, fromMonthKey: MonthKey) => void
 
+  // Cancel future entries for a legacy manual series identified by name pattern
+  cancelSeriesEntries: (workspaceId: EntityId, baseName: string, total: number, fromMonthKey: MonthKey) => void
+
   // Category reassignment
   reassignCategory: (oldCategoryId: EntityId, newCategoryId: EntityId) => void
 
@@ -221,6 +224,19 @@ export const useBillsStore = create<BillsState>()(
           if (record.monthKey >= fromMonthKey) {
             record.bills = record.bills.filter((entry) => entry.billId !== billId)
           }
+        }
+      }),
+
+    cancelSeriesEntries: (workspaceId, baseName, total, fromMonthKey) =>
+      set((state) => {
+        for (const record of state.monthlyRecords) {
+          if (record.workspaceId !== workspaceId) continue
+          if (record.monthKey < fromMonthKey) continue
+          record.bills = record.bills.filter((e) => {
+            const match = e.name.match(/^(.+) \((\d+)\/(\d+)\)$/)
+            if (!match) return true
+            return !(match[1] === baseName && Number(match[3]) === total)
+          })
         }
       }),
 

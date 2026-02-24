@@ -31,6 +31,7 @@ export function RecurringBillsModal({ open, onClose, workspaceId, currentMonth }
   const updateBill = useBillsStore((s) => s.updateBill)
   const deleteBill = useBillsStore((s) => s.deleteBill)
   const cancelFutureEntries = useBillsStore((s) => s.cancelFutureEntries)
+  const cancelSeriesEntries = useBillsStore((s) => s.cancelSeriesEntries)
 
   const allCategories = useSettingsStore((s) => s.settings.categories)
   const categories = useMemo(
@@ -62,10 +63,30 @@ export function RecurringBillsModal({ open, onClose, workspaceId, currentMonth }
     return stats
   }, [wsBills, monthlyRecords, workspaceId])
 
+  const existingSeries = useMemo(() => {
+    const seriesMap = new Map<string, { baseName: string; total: number; remaining: number }>()
+    for (const record of monthlyRecords) {
+      if (record.workspaceId !== workspaceId) continue
+      for (const entry of record.bills) {
+        if (entry.billId !== '') continue
+        const match = entry.name.match(/^(.+) \((\d+)\/(\d+)\)$/)
+        if (!match) continue
+        const baseName = match[1]
+        const total = Number(match[3])
+        const key = `${baseName}|||${total}`
+        const current = seriesMap.get(key) || { baseName, total, remaining: 0 }
+        if (record.monthKey >= currentMonth) current.remaining++
+        seriesMap.set(key, current)
+      }
+    }
+    return [...seriesMap.values()].sort((a, b) => a.baseName.localeCompare(b.baseName))
+  }, [monthlyRecords, workspaceId, currentMonth])
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editState, setEditState] = useState<EditState>({ name: '', value: 0, dueDay: 1, categoryId: '', notes: '' })
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Bill | null>(null)
+  const [cancelSeriesTarget, setCancelSeriesTarget] = useState<{ baseName: string; total: number } | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [newBill, setNewBill] = useState<EditState>({ name: '', value: 0, dueDay: 1, categoryId: categories[0]?.id || '', notes: '' })
 
@@ -302,6 +323,36 @@ export function RecurringBillsModal({ open, onClose, workspaceId, currentMonth }
             )}
           </div>
         )}
+
+        {existingSeries.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Séries existentes (criadas com &quot;Repetir nos próximos meses&quot;)
+            </p>
+            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+              {existingSeries.map((s) => (
+                <div key={`${s.baseName}|||${s.total}`} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900">{s.baseName}</p>
+                    <p className="text-xs text-gray-400">
+                      {s.total} meses · {s.remaining} {s.remaining === 1 ? 'entrada restante' : 'entradas restantes'} a partir do mês atual
+                    </p>
+                  </div>
+                  {s.remaining > 0 && (
+                    <SimpleTooltip label="Cancelar entradas restantes a partir do mês atual">
+                      <button
+                        onClick={() => setCancelSeriesTarget({ baseName: s.baseName, total: s.total })}
+                        className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-500"
+                      >
+                        <CalendarX2 size={15} />
+                      </button>
+                    </SimpleTooltip>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog
@@ -331,6 +382,20 @@ export function RecurringBillsModal({ open, onClose, workspaceId, currentMonth }
         title="Cancelar Ocorrências Futuras"
         message={cancelTarget ? `Cancelar todas as contas "${cancelTarget.name}" a partir do mês atual (${currentMonth}) e pausar o template? Contas de meses anteriores não serão afetadas.` : ''}
         confirmLabel="Cancelar Futuras"
+        danger
+      />
+      <ConfirmDialog
+        open={!!cancelSeriesTarget}
+        onClose={() => setCancelSeriesTarget(null)}
+        onConfirm={() => {
+          if (cancelSeriesTarget) {
+            cancelSeriesEntries(workspaceId, cancelSeriesTarget.baseName, cancelSeriesTarget.total, currentMonth)
+            setCancelSeriesTarget(null)
+          }
+        }}
+        title="Cancelar Série"
+        message={cancelSeriesTarget ? `Cancelar as entradas restantes de "${cancelSeriesTarget.baseName}" a partir do mês atual? Meses anteriores não serão afetados.` : ''}
+        confirmLabel="Cancelar Série"
         danger
       />
     </Modal>
