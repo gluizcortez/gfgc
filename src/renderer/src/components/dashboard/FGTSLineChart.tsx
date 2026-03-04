@@ -14,15 +14,16 @@ export function FGTSLineChart({ records, year }: FGTSLineChartProps): React.JSX.
   const months = useMemo(() => getYearMonths(year), [year])
 
   const chartData = useMemo(() => {
-    return months.map((monthKey, index) => {
-      const record = records
-        .filter((r) => r.monthKey === monthKey)
-        .sort((a, b) => b.date.localeCompare(a.date))[0]
-      return {
-        name: MONTH_NAMES_PT[index].substring(0, 3),
-        saldo: record ? record.balance / 100 : null
-      }
-    }).filter((d) => d.saldo !== null)
+    return months
+      .map((monthKey, index) => {
+        const monthRecords = records.filter((r) => r.monthKey === monthKey)
+        const total = monthRecords.reduce((sum, r) => sum + r.balance, 0)
+        return {
+          name: MONTH_NAMES_PT[index].substring(0, 3),
+          saldo: total > 0 ? total / 100 : null
+        }
+      })
+      .filter((d) => d.saldo !== null)
   }, [records, months])
 
   if (chartData.length === 0) {

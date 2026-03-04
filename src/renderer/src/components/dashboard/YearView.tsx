@@ -77,12 +77,16 @@ export function YearView({
   )
 
   // FGTS data
-  const yearFGTS = useMemo(() => {
-    const records = fgtsRecords.filter((r) => months.includes(r.monthKey))
-    return records.sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+  const yearFGTSMonthlyTotals = useMemo(() => {
+    return months
+      .map((monthKey) => {
+        const monthRecords = fgtsRecords.filter((r) => r.monthKey === monthKey)
+        return monthRecords.reduce((sum, r) => sum + r.balance, 0)
+      })
+      .filter((total) => total > 0)
   }, [fgtsRecords, months])
-  const latestFGTS = yearFGTS[0]?.balance || 0
-  const firstFGTS = yearFGTS[yearFGTS.length - 1]?.balance || 0
+  const latestFGTS = yearFGTSMonthlyTotals[yearFGTSMonthlyTotals.length - 1] || 0
+  const firstFGTS = yearFGTSMonthlyTotals[0] || 0
   const fgtsGrowth = latestFGTS - firstFGTS
 
   // Income data
