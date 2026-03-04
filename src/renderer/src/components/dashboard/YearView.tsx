@@ -224,7 +224,7 @@ export function YearView({
       )}
 
       {/* FGTS Summary */}
-      {yearFGTS.length > 0 && (
+      {yearFGTSMonthlyTotals.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-semibold text-gray-700">FGTS no Ano</h3>
           <div className="grid grid-cols-3 gap-4">
